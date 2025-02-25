@@ -4,8 +4,8 @@ import pandas as pd
 import yaml
 from sdv.metadata import Metadata
 
-with open('../data/understanding_society/meta_metadata.yaml', 'r') as file:
-    METADATA = yaml.safe_load(file)
+from importlib.resources import files
+METADATA = yaml.safe_load(files("synthwave.data.understanding_society").joinpath('meta_metadata.yaml').read_text())
 
 def metadata_constructor(df: pd.DataFrame, _table_name: str) -> Metadata:
     """

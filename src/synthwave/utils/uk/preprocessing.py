@@ -5,8 +5,9 @@ import pandas as pd
 from collections import Counter
 
 import yaml
-with open('../../data/understanding_society/opcodes.yaml', 'r') as file:
-    DEFAULT_OPCODES = yaml.safe_load(file)
+
+from importlib.resources import files
+DEFAULT_OPCODES = yaml.safe_load(files("synthwave.data.understanding_society").joinpath('opcodes.yaml').read_text())
 
 import logging
 logger = logging.getLogger(__name__)
