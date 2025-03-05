@@ -105,8 +105,8 @@ def convert_stata_csv(
                         ),
                         index=False,
                     )
-            except Exception as _:
-                print(f"Failed to convert {file_}")
+            except Exception as e:
+                print(f"Failed to convert {file_} because of {e}")
 
 
 def merge_usoc_data(
