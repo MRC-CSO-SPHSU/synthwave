@@ -343,15 +343,18 @@ def _find_dangling_fields(path_: str | Path = None) -> set:
 
 
 
-def preprocess_usoc_data(_path="~/Work/data/"):
+def preprocess_usoc_data(_path="~/Work/data/", skip_conversion=True):
+    if skip_conversion:
+        individuals = pd.read_pickle(_path + "synthwave/md/individuals.pkl")
+        households = pd.read_pickle(_path + "synthwave/md/households.pkl")
+    else:
+        convert_stata_csv(_path + "understanding_society/UKDA-6614-stata/stata/stata13_se/ukhls/",
+                          output_dir=_path + "synthwave")
 
-    convert_stata_csv(_path + "understanding_society/UKDA-6614-stata/stata/stata13_se/ukhls/",
-                      output_dir=_path + "synthwave")
+        individuals, households = merge_usoc_data(_path + "synthwave")
 
-    individuals, households = merge_usoc_data(_path + "synthwave")
-
-    individuals.to_pickle(_path + "synthwave/md/individuals.pkl")
-    households.to_pickle(_path + "synthwave/md/households.pkl")
+        individuals.to_pickle(_path + "synthwave/md/individuals.pkl")
+        households.to_pickle(_path + "synthwave/md/households.pkl")
 
     households = process_households(households)
     # NOTE this procedure might decrease the number of households
