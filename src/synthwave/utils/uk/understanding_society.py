@@ -73,7 +73,7 @@ def convert_stata_csv(
     assert (len(prefix) == 1) and (prefix in string.ascii_lowercase)
 
     for file_ in os.listdir(p_):
-        if file_.startswith(f"{prefix}_"):
+        if file_.startswith((f"{prefix}_", "xwavedat")):
             try:
                 df_ = pd.read_stata(p_ / file_, convert_categoricals=False)
                 # convert_categoricals=False do not convert data
