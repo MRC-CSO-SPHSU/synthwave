@@ -68,8 +68,8 @@ def convert_stata_csv(
     -----
         Renames all columns and files by stripping them of the prefix.
     """
-    p_ = path_validation(path_)
-    o_ = path_validation(output_dir)
+    p_ = path_validation(path_).expanduser()
+    o_ = path_validation(output_dir).expanduser()
     assert (len(prefix) == 1) and (prefix in string.ascii_lowercase)
 
     for file_ in os.listdir(p_):
@@ -529,7 +529,7 @@ def preprocess_usoc_data(_path="~/Work/data/", skip_conversion=True):
     adults.loc[~processed & adults["category_person_job_status"].eq(2), _se_list] = 0
 
     adults = adults.replace(DEFAULT_OPCODES.values(), pd.NA)
-    adults["indicator_person_sex"] = adults["indicator_person_sex"].astype(object).replace({1: True, 2: False}).astype("bool[pyarrow]")
+    adults["indicator_person_sex"] = adults["indicator_person_sex"].map({1: True, 2: False}).astype("bool[pyarrow]")
 
     adults = adults.drop(columns=["indicator_person_did_paid_work", "indicator_person_has_job_no_work"])
 
@@ -647,21 +647,23 @@ def preprocess_usoc_data(_path="~/Work/data/", skip_conversion=True):
                ~adults["indicator_person_is_self_employed"], "income_person_second_job"] = 0
     # Padding with structural zeroes to make sure people with no main job don't have a second one
 
-    adults["indicator_household_has_central_heating"] = adults["indicator_household_has_central_heating"].astype(object).replace({1: True, 2: False}).astype("bool[pyarrow]")
+    adults["indicator_household_has_central_heating"] = adults["indicator_household_has_central_heating"].map({1: True, 2: False}).astype("bool[pyarrow]")
 
     adults = scale_sample(adults)
 
-    adults.to_parquet(_path + "adults_non_imputed_middle_fidelity.parquet",
+    _p = path_validation(_path).expanduser()
+
+    adults.to_parquet(_p / "adults_non_imputed_middle_fidelity.parquet",
                         index=False,
                         )
 
     children = children.replace(DEFAULT_OPCODES.values(), pd.NA)
-    children["indicator_person_sex"] = children["indicator_person_sex"].astype(object).replace({1: True, 2: False}).astype("bool[pyarrow]")
-    children.to_parquet(_path + "children_non_imputed_middle_fidelity.parquet",
+    children["indicator_person_sex"] = children["indicator_person_sex"].map({1: True, 2: False}).astype("bool[pyarrow]")
+    children.to_parquet(_p / "children_non_imputed_middle_fidelity.parquet",
                         index=False,
                         )
 
     households = households.replace(DEFAULT_OPCODES.values(), pd.NA)
-    households.to_parquet(_path + "households_non_imputed_middle_fidelity.parquet",
+    households.to_parquet(_p / "households_non_imputed_middle_fidelity.parquet",
                         index=False,
                         )
