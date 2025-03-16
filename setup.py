@@ -37,7 +37,16 @@ setup(
                       "scikit-learn>=1.6.1",
                       "sdv>=1.17.3",
                       "torch>=2.5.1",
-                      "matplotlib>=3.10.0"
+                      "matplotlib>=3.10.0",
+                      "jupyter",
+                      "r-arrow",
+                      "r-mice",
+                      "r-dplyr",
+                      "r-lattice",
+                      "r-argparser",
+                      "r-parallelly",
+                      "r-future",
+                      "r-furrr",
                       ],
     extras_require={
         "dev": ["check-manifest"],

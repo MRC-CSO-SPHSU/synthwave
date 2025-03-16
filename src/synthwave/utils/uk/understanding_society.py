@@ -353,8 +353,12 @@ def preprocess_usoc_data(_path="~/Work/data/", skip_conversion=True):
 
         individuals, households = merge_usoc_data(_path + "synthwave")
 
-        individuals.to_pickle(_path + "synthwave/md/individuals.pkl")
-        households.to_pickle(_path + "synthwave/md/households.pkl")
+        _md_path = "synthwave/md/"
+        if not os.path.exists(_path + _md_path):
+            print("Preprocessing folder not found; creating at {}".format(_path + _md_path))
+            os.makedirs(_path + _md_path)
+        individuals.to_pickle(_path + _md_path + "individuals.pkl")
+        households.to_pickle(_path + _md_path + "households.pkl")
 
     households = process_households(households)
     # NOTE this procedure might decrease the number of households
