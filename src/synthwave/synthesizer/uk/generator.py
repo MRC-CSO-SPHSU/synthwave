@@ -1,3 +1,4 @@
+import os
 from sklearn.dummy import DummyClassifier
 import logging
 
@@ -24,7 +25,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from importlib.resources import files
 
-HOUSEHOLD_ID_MAP = {_v: _i  for _i, _v in enumerate(["a0", "a1+", "c0", "c1", "c2", "c3+", "m2", "m3", "mc3", "m4", "mc4"])}
+HOUSEHOLD_ID_MAP = {_v: _i for _i, _v in enumerate(["a0", "a1+", "c0", "c1", "c2", "c3+", "m2", "m3", "mc3", "m4", "mc4"])}
 # their relative order is irrelevant at the moment as long as it is the same across all data
 
 MAX_CHILDREN = yaml.safe_load(files("synthwave.data.understanding_society").joinpath('syntet.yaml').read_text())["MAX_CHILDREN"]
@@ -83,8 +84,8 @@ class Syntets:
                 if not _g.endswith("+"):
                     d = d.drop(columns=["total_children"])
                 if len(d) > 0:
-                        self.subsets.append((_g, _r))
-                        self.groups[(_g, _r)] = {"data": d, "model": None, "dropouts": None}
+                    self.subsets.append((_g, _r))
+                    self.groups[(_g, _r)] = {"data": d, "model": None, "dropouts": None}
 
     @staticmethod
     def _splitter(_df: pd.DataFrame, _type: list, _location: int) -> pd.DataFrame:
@@ -296,44 +297,49 @@ class Syntets:
                     # the number of columns can vary from group to group
                     # FIXME the benefits have been corrupted by imputation and therefore do not pass the constraint check
                 ])
-                if "income_person_second_job" + _p in  self.groups[(_g, _r)]["data"].columns:
+                if "income_person_second_job" + _p in self.groups[(_g, _r)]["data"].columns:
                     self.groups[(_g, _r)]["model"].add_constraints([
-                                            MetaEmployment.get_schema(
-                        ["indicator_person_is_self_employed" + _p,
-                         "indicator_person_is_employed" + _p,
+                        MetaEmployment.get_schema(
+                            ["indicator_person_is_self_employed" + _p,
+                             "indicator_person_is_employed" + _p,
 
-                         "minutes_person_employment" + _p,
-                         "income_person_pay" + _p,
-                         "hours_person_overtime" + _p,
+                             "minutes_person_employment" + _p,
+                             "income_person_pay" + _p,
+                             "hours_person_overtime" + _p,
 
-                         "hours_person_self_employment" + _p,
-                         "income_person_self_employment" + _p,
+                             "hours_person_self_employment" + _p,
+                             "income_person_self_employment" + _p,
 
-                         "category_person_job_nssec" + _p,
-                         "category_person_job_sic" + _p,
+                             "category_person_job_nssec" + _p,
+                             "category_person_job_sic" + _p,
 
-                         "category_person_job_status" + _p,
+                             "category_person_job_status" + _p,
 
-                         "income_person_second_job" + _p])])
+                             "income_person_second_job" + _p])])
                 else:
                     self.groups[(_g, _r)]["model"].add_constraints([
-                                            MetaEmploymentNoSecondJob.get_schema(
-                        ["indicator_person_is_self_employed" + _p,
-                         "indicator_person_is_employed" + _p,
+                        MetaEmploymentNoSecondJob.get_schema(
+                            ["indicator_person_is_self_employed" + _p,
+                             "indicator_person_is_employed" + _p,
 
-                         "minutes_person_employment" + _p,
-                         "income_person_pay" + _p,
-                         "hours_person_overtime" + _p,
+                             "minutes_person_employment" + _p,
+                             "income_person_pay" + _p,
+                             "hours_person_overtime" + _p,
 
-                         "hours_person_self_employment" + _p,
-                         "income_person_self_employment" + _p,
+                             "hours_person_self_employment" + _p,
+                             "income_person_self_employment" + _p,
 
-                         "category_person_job_nssec" + _p,
-                         "category_person_job_sic" + _p,
+                             "category_person_job_nssec" + _p,
+                             "category_person_job_sic" + _p,
 
-                         "category_person_job_status" + _p])])
+                             "category_person_job_status" + _p])])
 
     def train(self, save_path, verbose=False):
+
+        if not os.path.exists(save_path):
+            print("Folder for trained data not found; creating at {}".format(save_path))
+            os.makedirs(save_path)
+
         for _g, _r in self.subsets:
             if verbose:
                 print(_g, _r)
@@ -341,9 +347,11 @@ class Syntets:
                 print(len(self.groups[(_g, _r)]["data"]))
 
             self.groups[(_g, _r)]["model"].fit(self.groups[(_g, _r)]["data"])
-            self.groups[(_g, _r)]["model"].save(filepath=save_path + f'model_{_g}_{_r}.pkl')
+            fullpath = os.path.join(save_path, f'model_{_g}_{_r}.pkl')
+            self.groups[(_g, _r)]["model"].save(fullpath)
 
-            with open(save_path + f'dropouts_{_g}_{_r}.yaml', 'w') as yml:
+            yaml_path = os.path.join(save_path, f'dropouts_{_g}_{_r}.yaml')
+            with open(yaml_path, 'w') as yml:
                 yaml.dump(self.groups[(_g, _r)]["dropouts"], yml, allow_unicode=True)
 
     @staticmethod
@@ -402,12 +410,12 @@ class Syntets:
 
                 # TODO rf is better than knn in that it can work fine without one hot encoding. still, current implementation does see *all* columns as numeric. works well though. see https://github.com/scikit-learn/scikit-learn/pull/12866
                 _rf = RandomForestClassifier(n_estimators=1024,
-                                 criterion='entropy',
-                                 max_depth=None,
-                                 max_features=None,
-                                 random_state=1,
-                                 n_jobs=4,
-                                 )
+                                             criterion='entropy',
+                                             max_depth=None,
+                                             max_features=None,
+                                             random_state=1,
+                                             n_jobs=4,
+                                             )
 
                 X_train, X_test, y_train, y_test = train_test_split(_data_household[_full_base_predictors + _extra_children_predictors],
                                                                     _data_household[_target_map[_target_code]],
@@ -560,14 +568,14 @@ class Syntets:
         return _df
 
     def add_children(self,
-            _df: pd.DataFrame,
-                         _max_household_children: int,
-                         _household_type: str,
-                         _household_location: int,
-                         _model_location: str,
-                         _mini_batch_id_: int = None,
-                         _micro_batch_id_: int = None,
-                         ) -> pd.DataFrame:
+                     _df: pd.DataFrame,
+                     _max_household_children: int,
+                     _household_type: str,
+                     _household_location: int,
+                     _model_location: str,
+                     _mini_batch_id_: int = None,
+                     _micro_batch_id_: int = None,
+                     ) -> pd.DataFrame:
 
         # this is the highest level function
         """Adds children to provided households
@@ -672,12 +680,12 @@ class Syntets:
                     # loop over children in a1+
                     _split.append(
                         self.add_children(_df=synthetic_data[synthetic_data["total_children"] == _children],
-                                      _max_household_children = _children,
-                                      _household_type = _household_type,
-                                      _household_location = _household_location,
-                                      _model_location = "/tmp", # FIXME no hardcoded values
-                                      _mini_batch_id_ = _mini_batch_id,
-                                      _micro_batch_id_ = _micro_batch_id)
+                                          _max_household_children = _children,
+                                          _household_type = _household_type,
+                                          _household_location = _household_location,
+                                          _model_location = "/tmp", # FIXME no hardcoded values
+                                          _mini_batch_id_ = _mini_batch_id,
+                                          _micro_batch_id_ = _micro_batch_id)
                     )
                 synthetic_data = pd.concat(_split)
 
@@ -690,12 +698,12 @@ class Syntets:
                 # couple, several children
                 if _household_type in ["c1", "c2"]:
                     synthetic_data = self.add_children(_df=synthetic_data,
-                                      _max_household_children = int(''.join(filter(str.isdigit, _household_type))),
-                                      _household_type = _household_type,
-                                      _household_location = _household_location,
-                                      _model_location = "/tmp", # FIXME no hardcoded values
-                                      _mini_batch_id_ = _mini_batch_id,
-                                      _micro_batch_id_ = _micro_batch_id)
+                                                       _max_household_children = int(''.join(filter(str.isdigit, _household_type))),
+                                                       _household_type = _household_type,
+                                                       _household_location = _household_location,
+                                                       _model_location = "/tmp", # FIXME no hardcoded values
+                                                       _mini_batch_id_ = _mini_batch_id,
+                                                       _micro_batch_id_ = _micro_batch_id)
                 else:
                     # loop over children c3+
                     _split = []
@@ -703,19 +711,19 @@ class Syntets:
                         # loop over children in a1+
                         _split.append(
                             self.add_children(_df=synthetic_data[synthetic_data["total_children"] == _children],
-                                          _max_household_children = _children,
-                                          _household_type = _household_type,
-                                          _household_location = _household_location,
-                                          _model_location = "/tmp", # FIXME no hardcoded values
-                                          _mini_batch_id_ = _mini_batch_id,
-                                          _micro_batch_id_ = _micro_batch_id)
+                                              _max_household_children = _children,
+                                              _household_type = _household_type,
+                                              _household_location = _household_location,
+                                              _model_location = "/tmp", # FIXME no hardcoded values
+                                              _mini_batch_id_ = _mini_batch_id,
+                                              _micro_batch_id_ = _micro_batch_id)
                         )
                     synthetic_data = pd.concat(_split)
 
         elif _household_type.startswith("mc"):
             # couple + some other people
             synthetic_data = generate_personal_ids(synthetic_data, contains_couples=True)
-        else: # TODO this only works for m3, m4 not mf
+        else:  # TODO this only works for m3, m4 not mf
             synthetic_data = generate_personal_ids(synthetic_data, contains_couples=False)
 
         return synthetic_data
