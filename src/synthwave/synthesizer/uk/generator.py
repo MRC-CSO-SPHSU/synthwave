@@ -403,39 +403,47 @@ class Syntets:
                 _set = _data_household[_target_map[_target_code]].unique()
 
                 if len(_set) == 1:
+                    print(f"Degeneracy at {_household_type} | region {_household_location} | total children {_max_household_children} | child id {aux_id} in {_target_code}")
                     # degeneracy
-                    _dummy = DummyClassifier(strategy="constant", constant=_set[0])
-                    _dummy.fit(_data_household[_full_base_predictors], _data_household[_target_map[_target_code]])
-                    return _dummy, _full_base_predictors
+                    _model = DummyClassifier(strategy="constant", constant=_set[0])
+                    _optimal_predictors = _full_base_predictors
+                    _model.fit(_data_household[_optimal_predictors], _data_household[_target_map[_target_code]])
+                else:
+                    # TODO rf is better than knn in that it can work fine without one hot encoding. still, current implementation does see *all* columns as numeric. works well though. see https://github.com/scikit-learn/scikit-learn/pull/12866
+                    _model = RandomForestClassifier(n_estimators=1024,
+                                                    criterion='entropy',
+                                                    max_depth=None,
+                                                    max_features=None,
+                                                    random_state=1,
+                                                    n_jobs=4,
+                                                    )
+                    #print(_target_code, _data_household[_target_map[_target_code]].unique())
+                    try:
+                        x_train, x_test, y_train, y_test = train_test_split(_data_household[_full_base_predictors + _extra_children_predictors],
+                                                                            _data_household[_target_map[_target_code]],
+                                                                            stratify=_data_household[_target_map[_target_code]],
+                                                                            random_state=42, test_size=0.1)
+                    except ValueError as e:
+                        print(f"Failed with {e}, falling back to non-stratified split")
+                        x_train, x_test, y_train, y_test = train_test_split(_data_household[_full_base_predictors + _extra_children_predictors],
+                                                                            _data_household[_target_map[_target_code]],
+                                                                            random_state=42, test_size=0.1)
+                    _optimal_predictors = get_optimal_features(_data_household[_full_base_predictors + _extra_children_predictors],
+                                                               x_train, x_test, y_train, y_test)
 
-                # TODO rf is better than knn in that it can work fine without one hot encoding. still, current implementation does see *all* columns as numeric. works well though. see https://github.com/scikit-learn/scikit-learn/pull/12866
-                _rf = RandomForestClassifier(n_estimators=1024,
-                                             criterion='entropy',
-                                             max_depth=None,
-                                             max_features=None,
-                                             random_state=1,
-                                             n_jobs=4,
-                                             )
+                    _model.fit(_data_household[_optimal_predictors],
+                               _data_household[_target_map[_target_code]])
 
-                X_train, X_test, y_train, y_test = train_test_split(_data_household[_full_base_predictors + _extra_children_predictors],
-                                                                    _data_household[_target_map[_target_code]],
-                                                                    stratify=_data_household[_target_map[_target_code]],
-                                                                    random_state=42, test_size=0.1)
-                _optimal_predictors = get_optimal_features(_data_household[_full_base_predictors + _extra_children_predictors],
-                                                           X_train, X_test, y_train, y_test)
+                    _extra_children_predictors.append(_target_map[_target_code])
+                    # only include if the target is not degenerate
 
-                _rf.fit(_data_household[_optimal_predictors],
-                        _data_household[_target_map[_target_code]])
+                _common_path = _model_location + f'{_household_type}_l{_household_location}_tc{_max_household_children}_cid{aux_id}_{_target_code}.'
+                joblib.dump(_model, _common_path + 'joblib')
 
-                joblib.dump(_rf, _model_location + f'{_household_type}_{_household_type}_tc{_max_household_children}_cid{aux_id}_{_target_code}.joblib')
-
-                with open(_model_location + f'{_household_type}_l{_household_location}_tc{_max_household_children}_cid{aux_id}_{_target_code}.yaml', 'w') as yml:
+                with open(_common_path + 'yaml', 'w') as yml:
                     yaml.dump(_optimal_predictors, yml, allow_unicode=True)
 
-                _extra_children_predictors.append(_target_map[_target_code])
-                # only include if the target is not degenerate
-
-                return _rf, _optimal_predictors
+                return _model, _optimal_predictors
 
             for _k, _v in _target_map.items():
                 _model_collection["children"]["total"][_max_household_children]["id"][aux_id][_k] = _generate_model(_k)
@@ -609,9 +617,10 @@ class Syntets:
             }
 
             # loop over target map k, v
-            for _k, _v in _target_map.items():
+            for _target_code, _v in _target_map.items():
+                _common_path = _model_location + f'{_household_type}_l{_household_location}_tc{_max_household_children}_cid{aux_id}_{_target_code}.'
                 # load yaml with optimal predictors
-                with open(_model_location + f'{_household_type}_l{_household_location}_tc{_max_household_children}_cid{aux_id}_{_k}.yaml', 'w') as stream:
+                with open(_common_path + 'yaml', 'r') as stream:
                     _optimal_predictors = yaml.safe_load(stream)
 
                 # check if any of the siblings is there if yes attach corresponding series
@@ -620,7 +629,7 @@ class Syntets:
                         _local_df = pd.concat([_local_df, _children_attributes[_c]], ignore_index=True,  axis=1)
 
                 # load the model itself
-                _model = joblib.load(_model_location + f'{_household_type}_{_household_type}_tc{_max_household_children}_cid{aux_id}_{_k}.joblib')
+                _model = joblib.load(_common_path + 'joblib')
                 _children_attributes[_v] = pd.Series(_model.predict(_local_df[_optimal_predictors]), name=_v)
                 # predict attributes, store in a series, append to the list
 
