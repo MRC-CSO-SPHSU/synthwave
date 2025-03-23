@@ -481,7 +481,8 @@ class Syntets:
                                         how="inner", # inner merge to avoid incomplete records
                                         on="id_household").drop(columns=["id_household"], errors="ignore")
 
-                        comb = _df.apply(pd.unique)
+                        # comb = _df.apply(pd.unique)
+                        comb = _df.T.apply(lambda x: x.unique(), axis=1)  # HR 88/89 Avoids horrible Pandas error
                         exclude = comb[comb.map(len) == 1].map(lambda x: x[0]).to_dict().keys()
                         exclude = [_e for _e in exclude if not _e.endswith(tuple(self._get_postfixes_children(_children)))]
                         # do not drop out degenerate attributes of children
@@ -528,7 +529,8 @@ class Syntets:
                                         how="inner", # inner merge to avoid incomplete records
                                         on="id_household").drop(columns=["id_household"], errors="ignore")
 
-                        comb = _df.apply(pd.unique)
+                        # comb = _df.apply(pd.unique)
+                        comb = _df.T.apply(lambda x: x.unique(), axis=1)  # HR 88/89 Avoids horrible Pandas error
                         exclude = comb[comb.map(len) == 1].map(lambda x: x[0]).to_dict().keys()
                         exclude = [_e for _e in exclude if not _e.endswith(tuple(self._get_postfixes_children(_children)))]
                         # do not drop out degenerate attributes of children
