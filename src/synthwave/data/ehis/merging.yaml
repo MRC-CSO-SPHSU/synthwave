@@ -1,0 +1,32 @@
+TARGETS: [ MH1A, MH1B, MH1C, MH1D, MH1E, MH1F, MH1G, MH1H ]
+
+KEYS: [
+    SEX,
+    AGE, # age bands
+    REGION,
+    DEG_URB,
+    BIRTHPLACE,
+    HATLEVEL,
+
+    MAINSTAT,
+    FT_PT,
+    JOBSTAT,
+    JOBISCO,
+
+    HS1,
+    HS2,
+    HS3,
+
+    BM1,
+    BM2,
+
+    LOCNACE,
+    HHNBPERS,
+    HHTYPE,
+    PARTNERS,
+    MARSTALEGAL, # this one requires a mapping
+    HHNBPERS_0_13,
+    HHINCOME, # requires mapping
+]
+
+AUX: [ WGT ]

@@ -1,66 +1,71 @@
 # rules
 # id is uint64[pyarrow] unless specified otherwise
 # filter is everybody unless specified otherwise
-# anonymisation rule is unaltered by default
+# anonymization rule is unaltered by default
 # weights are float32[pyarrow]
 # indicator is bool[pyarrow]
+# default target is person
 
 TECHNICAL SURVEY VARIABLES:
   PID:
     Description: Identification number of respondent
     Type: id
     Answer categories and codes:
-      Range: 10-digit number # TODO don't like this representation
+      Range: [ 0, 9999999999 ]
 
   HHID:
     Description: Identification number of household
     Type: id
+    Target: household
     DataType: int64[pyarrow]
     Answer categories and codes:
-      Range: 10-digit number # TODO again
+      Range: [ 0, 9999999999 ]
       Invalid:
         -1: missing
 
   PRIMSTRAT:
     Description: Primary strata as used in the selection of the sample
     Type: id
+    Target: strata
     DataType: int16[pyarrow]
     Answer categories and codes:
-      Range: [1, 9999]
+      Range: [ 1, 9999 ]
       Invalid:
         -2: not applicable (no stratification)
     Anonymisation rule:
-      Default: removed
+      Default: REMOVED
 
   SU:
     Description: Primary sampling units as used in the selection of the sample
     Type: id
+    Target: sampling_unit
     DataType: int16[pyarrow]
     Answer categories and codes:
       Range: [ 1, 9999 ]
       Invalid:
         -2: not applicable (no multistage sampling)
     Anonymisation rule:
-      Default: removed
+      Default: REMOVED
 
   WGT:
     Description: Final individual weight
     Type: weight
     Answer categories and codes:
-      Range: Number 5.3 # TODO
+      Range: [ 0, 99999.999 ]
 
   WGT_SPEC:
     Description: Final special individual weight
     Type: weight
+    Name: special
     Answer categories and codes:
-      Range: Number 5.3 # TODO
+      Range: [ 0, 99999.999 ]
       Invalid:
         -1: Not stated
 
   PROXY:
     Description: Was the selected person interviewed or someone else (proxy interview)
     Type: category
-    DataType: uint8[pyarrow]
+    Name: proxy
     Answer categories and codes:
       Label:
         1: Person himself/herself
@@ -69,14 +74,15 @@ TECHNICAL SURVEY VARIABLES:
 
   REFDATE:
     Description: Reference date of the interview
-    Type: date # TODO
-    DataType: uint32[pyarrow] # TODO
+    Type: date
+    Name: interview_date
+    DataType: uint16[pyarrow]
     Answer categories and codes:
-      Range: 8 digits (YYYYMMDD) # TODO
+      Range: 8 digits (YYYYMMDD)
     Anonymisation rule:
       Default: Only YYYYMM kept (DD removed)
       Country-specific rule for:
-        ES: REFDATE removed
+        ES: REMOVED
         MT: 5th and 6th digits of REFDATE changed to represent quarters (01, 02, 03, 04)
         IE: 5th and 6th digits of REFDATE changed to represent quarters (01, 02, 03, 04)
         # TODO merge entries
@@ -84,7 +90,7 @@ TECHNICAL SURVEY VARIABLES:
   INTMETHOD:
     Description: Data collection method used
     Type: category
-    DataType: uint16[pyarrow]
+    Name: interview_method
     Answer categories and codes:
       Label:
         10: Self-administred, postal non-electronic version
@@ -98,24 +104,25 @@ TECHNICAL SURVEY VARIABLES:
         50: Mixed mode collection
     Anonymisation rule:
       Country-specific rule for:
-        PT: INTMETHOD removed
+        PT: REMOVED
 
   INTLANG:
     Description: Language used for interview
     Type: category
+    Name: interview_language
     DataType: int16[pyarrow]
     Answer categories and codes:
       Range: 3-digit codes (Standard Code List Eurostat)  # TODO
       Invalid:
         -1: Not stated
     Anonymisation rule:
-      Default: removed
-
+      Default: REMOVED
 
 CORE SOCIAL VARIABLES:
   SEX:
     Description: Sex of respondent
     Type: indicator
+    Name: sex
     Answer categories and codes:
       Label:
         1: Male
@@ -124,42 +131,39 @@ CORE SOCIAL VARIABLES:
   AGE:
     Description: Age of respondent in completed years at the time of the interview
     Type: ordinal
-    DataType: uint8[pyarrow]
-    Answer categories and codes:
-      # TODO
-    Filter:
+    Name: age
+    Answer categories and codes: # TODO
     Anonymisation rule:
       Default: "5 years age groups with top coding (85 and more): 15-17, 18-19, 20-24, ..., 85+"
       Country-specific rule for:
-        MT: first age group is 15-19 # todo collapse
-        IS: first age group is 15-19
-        MT: top coding is 75 or more
-        IS: top coding is 75 or more
+        MT: first age group is 15-19; top coding is 75 or more
+        IS: first age group is 15-19; top coding is 75 or more
         SK: top coding is 80 or more
         NO: top coding is 80 or more
 
   COUNTRY:
     Description: Country of residence
     Type: category
-    DataType: # TODO
-    Answer categories and codes:
-      # TODO
+    Name: country
+    DataType: str
+    Answer categories and codes: ['PL', 'AT', 'BE', 'BG', 'CY', 'CZ', 'DE', 'DK', 'EE', 'EL', 'ES', 'FI', 'HR', 'HU', 'IE', 'IS', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'NO', 'PT', 'RO', 'RS', 'SE', 'SI', 'SK']
 
   REGION:
     Description: Region of residence
     Type: category
+    Name: region
     DataType: # TODO
-    Answer categories and codes:
-      # TODO
+    Answer categories and codes: # TODO
       Invalid:
         -1: Not stated
     Anonymisation rule:
-      Default: unaltered for BE, BG, CZ, DK, DE, EE, IE, ES, HR, HU, IT, LT, AT, PL, PT, SI, SK, FI, SE, RS and removed for all other countrie
+      Default: unaltered for BE, BG, CZ, DK, DE, EE, IE, ES, HR, HU, IT, LT, AT, PL, PT, SI, SK, FI, SE, RS and removed for all other countries
 
   DEG_URB:
     Description: Degree of urbanisation
     Type: ordinal
-    DataType: uint8[pyarrow]
+    Name: urbanization
+    Target: household
     Answer categories and codes:
       Label:
         1: Cities
@@ -171,6 +175,7 @@ CORE SOCIAL VARIABLES:
   BIRTHPLACE:
     Description: Country of birth
     Type: category
+    Name: country_birth
     DataType:  # TODO
     Answer categories and codes:
       # TODO
@@ -189,9 +194,9 @@ CORE SOCIAL VARIABLES:
   CITIZEN:
     Description: Country of main citizenship
     Type: category
+    Name: country_citizenship
     DataType: # TODO
-    Answer categories and codes:
-      # TODO
+    Answer categories and codes: # TODO
       Invalid:
         -1: Not stated
     Anonymisation rule:
@@ -213,6 +218,7 @@ but non-EU country nationality
   BIRTHPLACEFATH:
     Description: Country of birth of father
     Type: category
+    Name: country_birth_father
     DataType:  # TODO
     Answer categories and codes:
       # TODO
@@ -231,6 +237,7 @@ but non-EU country nationality
   BIRTHPLACEMOTH:
     Description: Country of birth of mother
     Type: category
+    Name: country_birth_mother
     DataType:  # TODO
     Answer categories and codes:
       # TODO
@@ -249,7 +256,7 @@ but non-EU country nationality
   HATLEVEL:
     Description: Educational attainment level (highest level of education completed)
     Type: ordinal
-    DataType: int8[pyarrow]
+    Name: education
     Answer categories and codes:
       Label:
         0: No formal education or below ISCED 1
@@ -278,7 +285,7 @@ but non-EU country nationality
   MAINSTAT:
     Description: Self-declared labour status
     Type: category
-    DataType: uint8[pyarrow]
+    Name: job_status
     Answer categories and codes:
       Label:
         10: Employed
@@ -300,6 +307,7 @@ but non-EU country nationality
   FT_PT:
     Description: Full or part-time work main job (self-defined)
     Type: indicator
+    Name: full_time
     Answer categories and codes:
       Label:
         1: Full-time job
@@ -312,7 +320,7 @@ but non-EU country nationality
   JOBSTAT:
     Description: Status in employment in main job
     Type: category
-    DataType: uint8[pyarrow]
+    Name: job_status2
     Answer categories and codes:
       Label:
         11: Self-employed person with employees
@@ -333,9 +341,8 @@ but non-EU country nationality
   JOBISCO:
     Description: Occupation in main job
     Type: category
-    DataType: uint8[pyarrow]
-    Answer categories and codes:
-      # todo
+    Name: job_occupation
+    Answer categories and codes: # todo
       Invalid:
         -1: Not stated
         -2: not applicable
@@ -346,9 +353,9 @@ but non-EU country nationality
   LOCNACE:
     Description: Economic activity of the local unit for main job (economic sector)
     Type: category
-    DataType: uint8[pyarrow]
+    Name: job_nace
     Answer categories and codes:
-      # todo
+      Range: [ A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V ]
       Invalid:
         -1: Not stated
         -2: not applicable
@@ -397,10 +404,10 @@ codes O, P, and Q)
          13 Other services (NACE codes R, S, T and U)
          " # todo
 
-
   PARTNERS:
     Description: Partners living in the same household
     Type: indicator
+    Name: lives_with_partner
     Answer categories and codes:
       Label:
         1: Person living with a legal or de facto partner
@@ -412,7 +419,7 @@ codes O, P, and Q)
   MARSTALEGAL:
     Description: Legal marital status
     Type: category
-    DataType: uint8[pyarrow]
+    Name: legal_marital_status
     Answer categories and codes:
       Label:
         1: Never married and never been in a registered partnership
@@ -425,9 +432,10 @@ codes O, P, and Q)
   HHNBPERS:
     Description: Household size
     Type: ordinal
-    DataType: uint8[pyarrow]
+    Name: size
+    Target: household
     Answer categories and codes:
-      Range: [1, 98]
+      Range: [ 1, 98 ]
       Invalid:
         -1: Not stated
     Anonymisation rule:
@@ -438,7 +446,8 @@ codes O, P, and Q)
   HHNBPERS_0_13:
     Description: Number of persons aged 13 or younger
     Type: ordinal
-    DataType: uint8[pyarrow]
+    Name: children_0_13
+    Target: household
     Answer categories and codes:
       Range: [ 1, 98 ]
       Invalid:
@@ -451,7 +460,8 @@ codes O, P, and Q)
   HHTYPE:
     Description: Type of household
     Type: category
-    DataType: uint8[pyarrow]
+    Name: type
+    Target: household
     Answer categories and codes:
       Label:
         10: One-person household
@@ -479,7 +489,8 @@ more (code 33)
   HHINCOME:
     Description: Net monthly equivalised income of the household
     Type: ordinal
-    DataType: uint8[pyarrow]
+    Name: equivalised_income
+    Target: household
     Answer categories and codes:
       Label:
         1: Below 1st quintile
@@ -496,7 +507,7 @@ HEALTH VARIABLES:
     HS1:
       Description: Self-perceived general health
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: health
       Answer categories and codes:
         Label:
           1: Very good
@@ -511,6 +522,7 @@ HEALTH VARIABLES:
     HS2:
       Description: Long-standing health problem
       Type: indicator
+      Name: long_term_sick
       Answer categories and codes:
         Label:
           1: Yes
@@ -521,7 +533,7 @@ HEALTH VARIABLES:
     HS3:
       Description: Limitation in activities because of health problems
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: limitations_health
       Answer categories and codes:
         Label:
           1: Severely limited
@@ -535,6 +547,7 @@ HEALTH VARIABLES:
     CD1A:
       Description: Having asthma in the past 12 months (allergic asthma included)
       Type: indicator
+      Name: asthma
       Answer categories and codes:
         Label:
           1: Yes
@@ -545,6 +558,7 @@ HEALTH VARIABLES:
     CD1B:
       Description: Having chronic bronchitis, chronic obstructive pulmonary disease or emphysema in the past 12 months
       Type: indicator
+      Name: bronchitis
       Answer categories and codes:
         Label:
           1: Yes
@@ -555,6 +569,7 @@ HEALTH VARIABLES:
     CD1C:
       Description: Having a myocardial infarction (heart attack) or chronic consequences myocardial infarction in the past 12 months
       Type: indicator
+      Name: heart_attack
       Answer categories and codes:
         Label:
           1: Yes
@@ -565,6 +580,7 @@ HEALTH VARIABLES:
     CD1D:
       Description: Having a coronary heart disease or angina pectoris in the past 12 months
       Type: indicator
+      Name: heart_disease
       Answer categories and codes:
         Label:
           1: Yes
@@ -575,6 +591,7 @@ HEALTH VARIABLES:
     CD1E:
       Description: Having high blood pressure in the past 12 months
       Type: indicator
+      Name: high_blood_pressure
       Answer categories and codes:
         Label:
           1: Yes
@@ -585,6 +602,7 @@ HEALTH VARIABLES:
     CD1F:
       Description: Having a stroke (cerebral haemorrhage, cerebral thrombosis) or chronic consequences of stroke in the past 12 months
       Type: indicator
+      Name: stroke
       Answer categories and codes:
         Label:
           1: Yes
@@ -595,6 +613,7 @@ HEALTH VARIABLES:
     CD1G:
       Description: Having arthrosis (arthritis excluded) in the past 12 months
       Type: indicator
+      Name: arthrosis
       Answer categories and codes:
         Label:
           1: Yes
@@ -605,6 +624,7 @@ HEALTH VARIABLES:
     CD1H:
       Description: Having a low back disorder or other chronic back defect in the past 12 months
       Type: indicator
+      Name: back_disorder
       Answer categories and codes:
         Label:
           1: Yes
@@ -615,6 +635,7 @@ HEALTH VARIABLES:
     CD1I:
       Description: Having a neck disorder or other chronic neck defect in the past 12 months
       Type: indicator
+      Name: neck_disorder
       Answer categories and codes:
         Label:
           1: Yes
@@ -625,6 +646,7 @@ HEALTH VARIABLES:
     CD1J:
       Description: Having diabetes in the past 12 months
       Type: indicator
+      Name: diabetes
       Answer categories and codes:
         Label:
           1: Yes
@@ -635,6 +657,7 @@ HEALTH VARIABLES:
     CD1K:
       Description: Having an allergy, such as rhinitis, eye inflammation, dermatitis, food allergy or other (allergic asthma excluded) in the past 12 months
       Type: indicator
+      Name: allergy
       Answer categories and codes:
         Label:
           1: Yes
@@ -645,6 +668,7 @@ HEALTH VARIABLES:
     CD1L:
       Description: Having cirrhosis of the liver in the past 12 months
       Type: indicator
+      Name: cirrhosis
       Answer categories and codes:
         Label:
           1: Yes
@@ -655,6 +679,7 @@ HEALTH VARIABLES:
     CD1M:
       Description: Having urinary incontinence, problems in controlling the bladder in the past 12 months
       Type: indicator
+      Name: incontinence
       Answer categories and codes:
         Label:
           1: Yes
@@ -665,6 +690,7 @@ HEALTH VARIABLES:
     CD1N:
       Description: Having kidney problems in the past 12 months
       Type: indicator
+      Name: kidney_problems
       Answer categories and codes:
         Label:
           1: Yes
@@ -675,6 +701,7 @@ HEALTH VARIABLES:
     CD1O:
       Description: Having depression in the past 12 months
       Type: indicator
+      Name: depression
       Answer categories and codes:
         Label:
           1: Yes
@@ -685,6 +712,7 @@ HEALTH VARIABLES:
     CD1P:
       Description: Having high blood lipids in the past 12 months
       Type: indicator
+      Name: high_cholesterol
       Answer categories and codes:
         Label:
           1: Yes
@@ -695,7 +723,7 @@ HEALTH VARIABLES:
     CD2:
       Description: Self-perceived general oral health
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: oral_health
       Answer categories and codes:
         Label:
           1: Very good Everybody unaltered
@@ -711,6 +739,7 @@ HEALTH VARIABLES:
     AC1A:
       Description: Occurrence of a road traffic accident in the past 12 months
       Type: indicator
+      Name: traffic_accident
       Answer categories and codes:
         Label:
           1: Yes
@@ -721,6 +750,7 @@ HEALTH VARIABLES:
     AC1B:
       Description: Occurrence of an accident at home in the past 12 months
       Type: indicator
+      Name: home_accident
       Answer categories and codes:
         Label:
           1: Yes
@@ -730,6 +760,7 @@ HEALTH VARIABLES:
     AC1C:
       Description: Occurrence of a leisure accident in the past 12 months
       Type: indicator
+      Name: leisure_accident
       Answer categories and codes:
         Label:
           1: Yes
@@ -740,7 +771,7 @@ HEALTH VARIABLES:
     AC2:
       Description: Most serious medical care intervention for the most serious accident in the past 12 months
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: accident_care
       Answer categories and codes:
         Label:
           1: Admission to a hospital or any other health facility
@@ -755,6 +786,7 @@ HEALTH VARIABLES:
     AW1:
       Description: Absent from work due to personal health problems in the past 12 months
       Type: indicator
+      Name: work_absence
       Answer categories and codes:
         Label:
           1: Yes
@@ -767,6 +799,7 @@ HEALTH VARIABLES:
     AW2:
       Description: Number of days of absence from work due to personal health problems in the past 12 months
       Type: ordinal
+      Name: days_absent
       DataType: uint16[pyarrow]
       Answer categories and codes:
         # todo
@@ -795,7 +828,7 @@ HEALTH VARIABLES:
     PL1:
       Description: Wearing glasses or contact lenses
       Type: ordinal # todo remap
-      DataType: uint8[pyarrow]
+      Name: eyesight_correction
       Answer categories and codes:
         Label:
           1: Yes
@@ -809,7 +842,7 @@ HEALTH VARIABLES:
     PL2:
       Description: Difficulty in seeing, even when wearing glasses or contact lenses
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: vision_difficulty
       Answer categories and codes:
         Label:
           1: No difficulty
@@ -825,7 +858,7 @@ HEALTH VARIABLES:
     PL3:
       Description: Use of a hearing aid
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: hearing_aid
       Answer categories and codes:
         Label:
           1: Yes
@@ -839,7 +872,7 @@ HEALTH VARIABLES:
     PL4:
       Description: Difficulty in hearing what is said in a conversation with one other person in a quiet room even when using a hearing aid
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: hearing_difficulty_quiet
       Answer categories and codes:
         Label:
           1: No difficulty
@@ -855,7 +888,7 @@ HEALTH VARIABLES:
     PL5:
       Description: Difficulty in hearing what is said in a conversation with one other person in a noisier room even when using a hearing aid
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: hearing_difficulty_noisy
       Answer categories and codes:
         Label:
           1: No difficulty
@@ -872,7 +905,7 @@ PL3), code 4 is used"
     PL6:
       Description: Difficulty in walking half a km on level ground without the use of any aid
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: walking_difficulty_long_distance
       Answer categories and codes:
         Label:
           1: No difficulty
@@ -885,7 +918,7 @@ PL3), code 4 is used"
     PL7:
       Description: Difficulty in walking up or down 12 steps
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: walking_difficulty_stairs
       Answer categories and codes:
         Label:
           1: No difficulty
@@ -898,7 +931,7 @@ PL3), code 4 is used"
     PL8:
       Description: Difficulty in remembering or concentrating
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: difficulty_memory
       Answer categories and codes:
         Label:
           1: No difficulty
@@ -911,7 +944,7 @@ PL3), code 4 is used"
     PL9:
       Description: Difficulty biting and chewing on hard foods
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: difficulty_chewing
       Answer categories and codes:
         Label:
           1: No difficulty
@@ -928,7 +961,7 @@ PL3), code 4 is used"
     PC1A:
       Description: Difficulty in feeding yourself
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: difficulty_feeding
       Answer categories and codes:
         Label:
           1: No difficulty
@@ -943,7 +976,7 @@ PL3), code 4 is used"
     PC1B:
       Description: Difficulty in getting in and out of a bed or chair
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: difficulty_mobility
       Answer categories and codes:
         Label:
           1: No difficulty
@@ -958,7 +991,7 @@ PL3), code 4 is used"
     PC1C:
       Description: Difficulty in dressing and undressing
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: difficulty_dressing
       Answer categories and codes:
         Label:
           1: No difficulty
@@ -973,7 +1006,7 @@ PL3), code 4 is used"
     PC1D:
       Description: Difficulty in using toilets
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: difficulty_toilet_use
       Answer categories and codes:
         Label:
           1: No difficulty
@@ -985,11 +1018,10 @@ PL3), code 4 is used"
           -2: Not applicable
       Filter: AGE >= 55
 
-
     PC1E:
       Description: Difficulty in bathing or showering
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: difficulty_showering
       Answer categories and codes:
         Label:
           1: No difficulty
@@ -1009,6 +1041,7 @@ out of a bed or chair, dressing
 and undressing, using toilets,
 bathing or showering"
       Type: indicator
+      Name: self_care_assistance
       Answer categories and codes:
         Label:
           1: Yes, with at least one activity
@@ -1026,6 +1059,7 @@ in and out of a bed or chair,
 dressing and undressing, using
 toilets, bathing or showering"
       Type: indicator
+      Name: self_care_need
       Answer categories and codes:
         Label:
           1: Yes, with at least one activity
@@ -1039,7 +1073,7 @@ toilets, bathing or showering"
     HA1A:
       Description: Difficulty in preparing meals
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: difficulty_cooking
       Answer categories and codes:
         Label:
           1: No difficulty
@@ -1055,7 +1089,7 @@ toilets, bathing or showering"
     HA1B:
       Description: Difficulty in using the telephone
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: difficulty_phone_use
       Answer categories and codes:
         Label:
           1: No difficulty
@@ -1068,89 +1102,88 @@ toilets, bathing or showering"
           -2: Not applicable
       Filter: AGE >= 55
 
-      HA1C:
-        Description: Difficulty to do shopping
-        Type: ordinal
-        DataType: uint8[pyarrow]
-        Answer categories and codes:
-          Label:
-            1: No difficulty
-            2: Some difficulty
-            3: A lot of difficulty
-            4: Cannot do at all/Unable to do
-            5: Not applicable (never tried it or do not need to do it)
-          Invalid:
-            -1: Not stated
-            -2: Not applicable
-        Filter: AGE >= 55
+    HA1C:
+      Description: Difficulty to do shopping
+      Type: ordinal
+      Name: difficulty_shopping
+      Answer categories and codes:
+        Label:
+          1: No difficulty
+          2: Some difficulty
+          3: A lot of difficulty
+          4: Cannot do at all/Unable to do
+          5: Not applicable (never tried it or do not need to do it)
+        Invalid:
+          -1: Not stated
+          -2: Not applicable
+      Filter: AGE >= 55
 
-      HA1D:
-        Description: Difficulty in managing medication
-        Type: ordinal
-        DataType: uint8[pyarrow]
-        Answer categories and codes:
-          Label:
-            1: No difficulty
-            2: Some difficulty
-            3: A lot of difficulty
-            4: Cannot do at all/Unable to do
-            5: Not applicable (never tried it or do not need to do it)
-          Invalid:
-            -1: Not stated
-            -2: Not applicable
-        Filter: AGE >= 55
+    HA1D:
+      Description: Difficulty in managing medication
+      Type: ordinal
+      Name: difficulty_meditation
+      Answer categories and codes:
+        Label:
+          1: No difficulty
+          2: Some difficulty
+          3: A lot of difficulty
+          4: Cannot do at all/Unable to do
+          5: Not applicable (never tried it or do not need to do it)
+        Invalid:
+          -1: Not stated
+          -2: Not applicable
+      Filter: AGE >= 55
 
-      HA1E:
-        Description: Difficulty in doing light housework
-        Type: ordinal
-        DataType: uint8[pyarrow]
-        Answer categories and codes:
-          Label:
-            1: No difficulty
-            2: Some difficulty
-            3: A lot of difficulty
-            4: Cannot do at all/Unable to do
-            5: Not applicable (never tried it or do not need to do it)
-          Invalid:
-            -1: Not stated
-            -2: Not applicable
-        Filter: AGE >= 55
+    HA1E:
+      Description: Difficulty in doing light housework
+      Type: ordinal
+      Name: difficulty_light_housework
+      Answer categories and codes:
+        Label:
+          1: No difficulty
+          2: Some difficulty
+          3: A lot of difficulty
+          4: Cannot do at all/Unable to do
+          5: Not applicable (never tried it or do not need to do it)
+        Invalid:
+          -1: Not stated
+          -2: Not applicable
+      Filter: AGE >= 55
 
-      HA1F:
-        Description: Difficulty in doing occasional heavy housework
-        Type: ordinal
-        DataType: uint8[pyarrow]
-        Answer categories and codes:
-          Label:
-            1: No difficulty
-            2: Some difficulty
-            3: A lot of difficulty
-            4: Cannot do at all/Unable to do
-            5: Not applicable (never tried it or do not need to do it)
-          Invalid:
-            -1: Not stated
-            -2: Not applicable
-        Filter: AGE >= 55
+    HA1F:
+      Description: Difficulty in doing occasional heavy housework
+      Type: ordinal
+      Name: difficulty_heavy_housework
+      Answer categories and codes:
+        Label:
+          1: No difficulty
+          2: Some difficulty
+          3: A lot of difficulty
+          4: Cannot do at all/Unable to do
+          5: Not applicable (never tried it or do not need to do it)
+        Invalid:
+          -1: Not stated
+          -2: Not applicable
+      Filter: AGE >= 55
 
-      HA1G:
-        Description: Difficulty in taking care of finances and everyday administrative tasks
-        Type: ordinal
-        DataType: uint8[pyarrow]
-        Answer categories and codes:
-          Label:
-            1: No difficulty
-            2: Some difficulty
-            3: A lot of difficulty
-            4: Cannot do at all/Unable to do
-            5: Not applicable (never tried it or do not need to do it)
-          Invalid:
-            -1: Not stated
-            -2: Not applicable
-        Filter: AGE >= 55
+    HA1G:
+      Description: Difficulty in taking care of finances and everyday administrative tasks
+      Type: ordinal
+      Name: difficulty_finances
+      Answer categories and codes:
+        Label:
+          1: No difficulty
+          2: Some difficulty
+          3: A lot of difficulty
+          4: Cannot do at all/Unable to do
+          5: Not applicable (never tried it or do not need to do it)
+        Invalid:
+          -1: Not stated
+          -2: Not applicable
+      Filter: AGE >= 55
 
-
-      HA2:
-        Description: "Usually receiving help with one
+    HA2:
+      Description: "Usually receiving help with one
 or more domestic activities:
 preparing meals, using the
 telephone, shopping, managing
@@ -1158,19 +1191,19 @@ medication, light or occasional
 heavy housework, taking care
 of finances and everyday
 administrative tasks"
-        Type: indicator
-        Answer categories and codes:
-          Label:
-            1: Yes, with at least one activity
-            2: No
-          Invalid:
-            -1: Not stated
-            -2: Not applicable
-        Filter: (AGE >= 55) and {HA1A ≠ 1 or HA1B ≠ 1 or HA1C ≠ 1 or HA1D ≠ 1 or HA1E ≠ 1 or HA1F ≠ 1or HA1G ≠ 1}
+      Type: indicator
+      Name: assistance_household
+      Answer categories and codes:
+        Label:
+          1: Yes, with at least one activity
+          2: No
+        Invalid:
+          -1: Not stated
+          -2: Not applicable
+      Filter: (AGE >= 55) and {HA1A ≠ 1 or HA1B ≠ 1 or HA1C ≠ 1 or HA1D ≠ 1 or HA1E ≠ 1 or HA1F ≠ 1or HA1G ≠ 1}
 
-
-      HA3:
-        Description: "Need for help or more help
+    HA3:
+      Description: "Need for help or more help
 with one or more domestic
 activities: preparing meals,
 using the telephone, shopping,
@@ -1178,21 +1211,22 @@ managing medication, light or
 occasional heavy housework,
 taking care of finances and
 everyday administrative tasks"
-        Type: indicator
-        Answer categories and codes:
-          Label:
-            1: Yes, with at least one activity
-            2: No
-          Invalid:
-            -1: Not stated
-            -2: Not applicable
-        Filter: (AGE >= 55) and {HA1A ≠ 1 or HA1B ≠ 1 or HA1C ≠ 1 or HA1D ≠ 1 or HA1E ≠ 1 or HA1F ≠ 1or HA1G ≠ 1}
+      Type: indicator
+      Name: assistance_household_need
+      Answer categories and codes:
+        Label:
+          1: Yes, with at least one activity
+          2: No
+        Invalid:
+          -1: Not stated
+          -2: Not applicable
+      Filter: (AGE >= 55) and {HA1A ≠ 1 or HA1B ≠ 1 or HA1C ≠ 1 or HA1D ≠ 1 or HA1E ≠ 1 or HA1F ≠ 1or HA1G ≠ 1}
 
   Pain:
     PN1:
       Description: Intensity of bodily pain during the past 4 weeks
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: intensity_pain
       Answer categories and codes:
         Label:
           1: None
@@ -1207,7 +1241,7 @@ everyday administrative tasks"
     PN2:
       Description: Extent that pain interfered with normal work during the past 4 weeks (including both work outside the home and housework)
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: pain_impact
       Answer categories and codes:
         Label:
           1: Not at all
@@ -1224,7 +1258,7 @@ everyday administrative tasks"
     MH1A:
       Description: Extent of having little interest or pleasure in doing things over the last 2 weeks
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: low_pleasure
       Answer categories and codes:
         Label:
           1: Not at all
@@ -1236,12 +1270,12 @@ everyday administrative tasks"
           -3: proxy
       Anonymisation rule:
         Country-specific rule for:
-          ES: variable removed
+          ES: REMOVED
 
     MH1B:
       Description: Extent of feeling down, depressed or hopeless over the last 2 weeks
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: depression_symptoms
       Answer categories and codes:
         Label:
           1: Not at all
@@ -1253,12 +1287,13 @@ everyday administrative tasks"
           -3: proxy
       Anonymisation rule:
         Country-specific rule for:
-          ES: variable removed
+          ES: REMOVED
 
     MH1C:
       Description: Extent of having trouble falling or staying asleep, or sleeping too much over the last 2 weeks
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: sleep_issues
+
       Answer categories and codes:
         Label:
           1: Not at all
@@ -1270,12 +1305,12 @@ everyday administrative tasks"
           -3: proxy
       Anonymisation rule:
         Country-specific rule for:
-          ES: variable removed
+          ES: REMOVED
 
     MH1D:
       Description: Extent of feeling tired or having little energy over the last 2 weeks
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: fatigue
       Answer categories and codes:
         Label:
           1: Not at all
@@ -1287,12 +1322,12 @@ everyday administrative tasks"
           -3: proxy
       Anonymisation rule:
         Country-specific rule for:
-          ES: variable removed
+          ES: REMOVED
 
     MH1E:
       Description: Extent of having poor appetite or overeating over the last 2 weeks
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: poor_appetite
       Answer categories and codes:
         Label:
           1: Not at all
@@ -1304,12 +1339,12 @@ everyday administrative tasks"
           -3: proxy
       Anonymisation rule:
         Country-specific rule for:
-          ES: variable removed
+          ES: REMOVED
 
     MH1F:
       Description: Extent of subject feeling negative about themselves, or feeling that they are a failure or have let themselves or their family down, over the last 2 weeks
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: self_worth_issues
       Answer categories and codes:
         Label:
           1: Not at all
@@ -1321,12 +1356,12 @@ everyday administrative tasks"
           -3: proxy
       Anonymisation rule:
         Country-specific rule for:
-          ES: variable removed
+          ES: REMOVED
 
     MH1G:
       Description: Extent of having trouble concentrating on things, such as reading the newspaper or watching television, over the last 2 weeks
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: concentration_issues
       Answer categories and codes:
         Label:
           1: Not at all
@@ -1338,12 +1373,12 @@ everyday administrative tasks"
           -3: proxy
       Anonymisation rule:
         Country-specific rule for:
-          ES: variable removed
+          ES: REMOVED
 
     MH1H:
       Description: Extent of moving or speaking so slowly that other people could have noticed or being so fidgety or restless that they have been moving around a lot more than usual, over the last 2 weeks
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: motor_restlessness
       Answer categories and codes:
         Label:
           1: Not at all
@@ -1355,7 +1390,7 @@ everyday administrative tasks"
           -3: proxy
       Anonymisation rule:
         Country-specific rule for:
-          ES: variable removed
+          ES: REMOVED
 
 Health care:
   Use of inpatient and day care:
@@ -1363,9 +1398,10 @@ Health care:
     HO12:
       Description: Number of nights spent as a patient in a hospital in the past 12 months
       Type: ordinal
+      Name: nights_in_hospital
       DataType: uint16[pyarrow]
       Answer categories and codes:
-        Range: [0, 365]
+        Range: [ 0, 365 ]
         Invalid:
           -1: Not stated
       Anonymisation rule:
@@ -1373,9 +1409,11 @@ Health care:
 • MT and IS: top coding is 10 or more
 • PT: top coding is 25 or more
 • IE and SK: top coding is 30 or more"
+
     HO34:
       Description: Number of times admitted as a day patient in a hospital in the past 12 months
       Type: ordinal
+      Name: times_admitted
       DataType: uint16[pyarrow]
       Answer categories and codes:
         Range: [ 1, 365 ]
@@ -1383,14 +1421,15 @@ Health care:
           -1: Not stated
       Anonymisation rule:
         Default: top coding (3 or more)
-        Country-specific rule for: "IT: variable removed"
+        Country-specific rule for:
+          IT: REMOVED
 
   Use of ambulatory and home care:
 
     AM1:
       Description: Last time of a visit to a dentist or orthodontist (for personal treatment)
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: last_dentist_visit
       Answer categories and codes:
         Label:
           1: Less than 6 months ago
@@ -1403,7 +1442,7 @@ Health care:
     AM2:
       Description: Last time of a consultation of a general practitioner or family doctor (for personal treatment)
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: last_gp_visit
       Answer categories and codes:
         Label:
           1: Less than 12 months ago
@@ -1415,9 +1454,9 @@ Health care:
     AM3:
       Description: Number of consultations of a general practitioner or family doctor during the past four weeks (for personal treatment)
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: times_gp_consulted
       Answer categories and codes:
-        Range: [0, 99]
+        Range: [ 0, 99 ]
         Invalid:
           -1: Not stated
           -2: not applicable
@@ -1428,7 +1467,7 @@ Health care:
     AM4:
       Description: Last time of a consultation of a medical or surgical specialist (for personal treatment)
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: last_specialist_visit
       Answer categories and codes:
         Label:
           1: Less than 12 months ago
@@ -1440,9 +1479,9 @@ Health care:
     AM5:
       Description: Number of consultations of a medical or surgical specialist during the past four weeks (for personal treatment)
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: times_specialist_consulted
       Answer categories and codes:
-        Range: [0, 99]
+        Range: [ 0, 99 ]
         Invalid:
           -1: Not stated
           -2: not applicable
@@ -1455,6 +1494,7 @@ Health care:
     AM6A:
       Description: Consultation of a physiotherapist or kinesitherapist in the past 12 months
       Type: indicator
+      Name: consulted_mobility_specialist
       Answer categories and codes:
         Label:
           1: Yes
@@ -1465,6 +1505,7 @@ Health care:
     AM6B:
       Description: Consultation of a psychologist, psychotherapist or psychiatrist in the past 12 months
       Type: indicator
+      Name: consulted_therapist
       Answer categories and codes:
         Label:
           1: Yes
@@ -1475,6 +1516,7 @@ Health care:
     AM7:
       Description: Use of any home care services for personal needs during the past 12 months
       Type: indicator
+      Name: used_care_services
       Answer categories and codes:
         Label:
           1: Yes
@@ -1487,6 +1529,7 @@ Health care:
     MD1:
       Description: Use of any medicines prescribed by a doctor during the past two weeks (excluding contraception)
       Type: indicator
+      Name: used_prescribed_medicine
       Answer categories and codes:
         Label:
           1: Yes
@@ -1497,6 +1540,7 @@ Health care:
     MD2:
       Description: Use of any medicines, herbal medicines or vitamins not prescribed by a doctor during the past two weeks (excluding contraception)
       Type: indicator
+      Name: used_not_prescribed_medicine
       Answer categories and codes:
         Label:
           1: Yes
@@ -1510,6 +1554,7 @@ Health care:
     PA1:
       Description: Last time of vaccination against flu
       Type: ordinal
+      Name: last_vaccination
       DataType: uint8[pyarrow]
       Answer categories and codes:
         Range: Month/year (YYYYMM)
@@ -1529,6 +1574,7 @@ Health care:
     PA2:
       Description: Last time of blood pressure measurement by a health professional
       Type: ordinal
+      Name: last_blood_pressure
       DataType: uint8[pyarrow]
       Answer categories and codes:
         Label:
@@ -1544,6 +1590,7 @@ Health care:
     PA3:
       Description: Last time of blood cholesterol measurement by a health professional
       Type: ordinal
+      Name: last_blood_cholesterol
       DataType: uint8[pyarrow]
       Answer categories and codes:
         Label:
@@ -1559,6 +1606,7 @@ Health care:
     PA4:
       Description: Last time of blood sugar measurement by a health professional
       Type: ordinal
+      Name: last_blood_sugar
       DataType: uint8[pyarrow]
       Answer categories and codes:
         Label:
@@ -1574,6 +1622,7 @@ Health care:
     PA5:
       Description: Last time of a faecal occult blood test
       Type: ordinal
+      Name: last_occult_blood_test
       DataType: uint8[pyarrow]
       Answer categories and codes:
         Label:
@@ -1586,10 +1635,10 @@ Health care:
           -1: Not stated
           -3: Proxy
 
-
     PA6:
       Description: Last time of a colonoscopy
       Type: ordinal
+      Name: last_colonoscopy
       DataType: uint8[pyarrow]
       Answer categories and codes:
         Label:
@@ -1605,6 +1654,7 @@ Health care:
     PA7:
       Description: Last time of a mammography (breast X-ray)
       Type: ordinal
+      Name: last_mammography
       DataType: uint8[pyarrow]
       Answer categories and codes:
         Label:
@@ -1622,6 +1672,7 @@ Health care:
     PA8:
       Description: Last time of a cervical smear test
       Type: ordinal
+      Name: last_smear
       DataType: uint8[pyarrow]
       Answer categories and codes:
         Label:
@@ -1641,6 +1692,7 @@ Health care:
     UN1A:
       Description: Unmet need for health care in the past 12 months due to long waiting list(s)
       Type: ordinal # TODO this section is splittable? is it even ordinal?
+      Name: unmet_care_need_wait
       DataType: uint8[pyarrow]
       Answer categories and codes:
         Label:
@@ -1654,6 +1706,7 @@ Health care:
     UN1B:
       Description: Unmet need for health care in the past 12 months due to distance or transportation problems
       Type: ordinal
+      Name: unmet_care_need_distance
       DataType: uint8[pyarrow]
       Answer categories and codes:
         Label:
@@ -1667,6 +1720,7 @@ Health care:
     UN2A:
       Description: Could not afford medical examination or treatment in the past 12 months
       Type: ordinal
+      Name: unaffordable_medical_examination
       DataType: uint8[pyarrow]
       Answer categories and codes:
         Label:
@@ -1680,6 +1734,7 @@ Health care:
     UN2B:
       Description: Could not afford dental examination or treatment in the past 12 months
       Type: ordinal
+      Name: unaffordable_dental_examination
       DataType: uint8[pyarrow]
       Answer categories and codes:
         Label:
@@ -1693,6 +1748,7 @@ Health care:
     UN2C:
       Description: Could not afford prescribed medicines in the past 12 months
       Type: ordinal
+      Name: unaffordable_medicine
       DataType: uint8[pyarrow]
       Answer categories and codes:
         Label:
@@ -1706,6 +1762,7 @@ Health care:
     UN2D:
       Description: Could not afford mental health care (by a psychologist, psychortherapist or a psychiatrist for example) in the past 12 months
       Type: ordinal
+      Name: unaffordable_mental_care
       DataType: uint8[pyarrow]
       Answer categories and codes:
         Label:
@@ -1730,6 +1787,7 @@ Health determinants:
     BM1:
       Description: Height without shoes
       Type: ordinal
+      Name: height
       DataType: uint16[pyarrow]
       Answer categories and codes:
         Range: Number in cm # todo
@@ -1760,6 +1818,7 @@ Health determinants:
     BM2:
       Description: Weight without clothes and shoes
       Type: ordinal
+      Name: weight
       DataType: uint16[pyarrow]
       Answer categories and codes:
         Range: Number in kg  # todo
@@ -1793,7 +1852,7 @@ kg; high = 150 kg
     PE1:
       Description: Physical effort of working tasks (both paid and unpaid work activities included)
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: job_activity
       Answer categories and codes:
         Label:
           1: Mostly sitting or standing
@@ -1807,7 +1866,7 @@ kg; high = 150 kg
     PE2:
       Description: Number of days in a typical week walking to get to and from places at least 10 minutes continuously
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: days_walking
       Answer categories and codes:
         # todo think about how to represent the range
         Invalid:
@@ -1817,7 +1876,7 @@ kg; high = 150 kg
     PE3:
       Description: Time spent on walking to get to and from places on a typical day
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: time_walking
       Answer categories and codes:
         Label:
           1: 10 – 29 minutes per day
@@ -1834,7 +1893,7 @@ kg; high = 150 kg
     PE4:
       Description: Number of days in a typical week bicycling to get to and from places at least 10 minutes continuously
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: days_cycling
       Answer categories and codes:
         # todo think about how to represent the range
         Invalid:
@@ -1844,7 +1903,7 @@ kg; high = 150 kg
     PE5:
       Description: Time spent on bicycling to get to and from places on a typical day
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: time_cycling
       Answer categories and codes:
         Label:
           1: 10 – 29 minutes per day
@@ -1861,7 +1920,7 @@ kg; high = 150 kg
     PE6:
       Description: Number of days in a typical week doing sports, fitness or recreational (leisure) physical activities that cause at least a small increase in breathing or heart rate for at least 10 minutes continuously
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: days_cardio_training
       Answer categories and codes:
         # todo think about how to represent the range
         Invalid:
@@ -1871,7 +1930,7 @@ kg; high = 150 kg
     PE7:
       Description: Time spent on doing sports, fitness or recreational (leisure) physical activities in a typical week
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: time_activity
       Answer categories and codes:
         Range: HHMM (hours/minutes) # todo convert to minutes/ change dtype?
         Invalid:
@@ -1883,7 +1942,7 @@ kg; high = 150 kg
     PE8:
       Description: Number of days in a typical week doing muscle-strengthening activities
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: days_muscle_training
       Answer categories and codes:
         # todo think about how to represent the range
         Invalid:
@@ -1893,7 +1952,7 @@ kg; high = 150 kg
     PE9:
       Description: Time spent sitting on a typical day
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: time_sitting
       Answer categories and codes:
         Range: HHMM (hours/minutes) # todo convert to minutes/ change dtype?
         Invalid:
@@ -1905,7 +1964,7 @@ kg; high = 150 kg
     DH1:
       Description: Frequency of eating fruit, excluding juice
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: frequency_fruit
       Answer categories and codes:
         Label:
           1: Once or more a day
@@ -1920,9 +1979,9 @@ kg; high = 150 kg
     DH2:
       Description: Number of portions of fruit a day, excluding juice
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: fruit_day
       Answer categories and codes:
-        Range: [1, 99]
+        Range: [ 1, 99 ]
         Invalid:
           -1: Not stated
           -2: not applicable # todo replace with 0 portions
@@ -1932,7 +1991,7 @@ kg; high = 150 kg
     DH3:
       Description: Frequency of eating vegetables or salad, excluding juice and potatoes
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: frequency_salad
       Answer categories and codes:
         Label:
           1: Once or more a day
@@ -1947,7 +2006,7 @@ kg; high = 150 kg
     DH4:
       Description: Number of portions of vegetables or salad, excluding juice and potatoes a day
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: salad_day
       Answer categories and codes:
         Range: [ 1, 99 ]
         Invalid:
@@ -1959,7 +2018,7 @@ kg; high = 150 kg
     DH5:
       Description: Frequency of drinking pure fruit or vegetable juice
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: frequency_juice
       Answer categories and codes:
         Label:
           1: Once or more a day
@@ -1974,7 +2033,7 @@ kg; high = 150 kg
     DH6:
       Description: Frequency of drinking sugar-sweetened soft drinks
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: frequency_sugar_drinks
       Answer categories and codes:
         Label:
           1: Once or more a day
@@ -1991,7 +2050,7 @@ kg; high = 150 kg
     SK1:
       Description: Type of tobacco smoking behaviour
       Type: ordinal
-      DataType: uint8[pyarrow] # todo splittable
+      Name: smoking_status # todo splittable
       Answer categories and codes:
         Label:
           1: Daily smoking
@@ -2003,9 +2062,9 @@ kg; high = 150 kg
     SK2:
       Description: Average number of cigarettes a day
       Type: ordinal
-      DataType: uint8[pyarrow] # todo
+      Name: cigarettes_day
       Answer categories and codes:
-        Range: [0, 99]
+        Range: [ 0, 99 ]
         Invalid:
           -1: Not stated
           -2: not applicable
@@ -2017,6 +2076,7 @@ kg; high = 150 kg
     SK3:
       Description: Former daily tobacco smoking
       Type: indicator
+      Name: ex_smoker
       Answer categories and codes:
         Label:
           1: Yes
@@ -2029,9 +2089,9 @@ kg; high = 150 kg
     SK4:
       Description: Number of years of daily tobacco smoking
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: years_smoking
       Answer categories and codes:
-        Range: [0, 99]
+        Range: [ 0, 99 ]
         Invalid:
           -1: Not stated
           -2: not applicable
@@ -2040,7 +2100,7 @@ kg; high = 150 kg
     SK5:
       Description: Frequency of exposure to tobacco smoke indoors
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: frequency_tobacco_smoke
       Answer categories and codes:
         Label:
           1: Every day, 1 hour or more a day Everybody unaltered
@@ -2055,7 +2115,7 @@ kg; high = 150 kg
     SK6:
       Description: Type of electronic cigarettes or similar electronic devices behaviour
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: vaping_status
       Answer categories and codes:
         Label:
           1: Daily vaping
@@ -2071,7 +2131,7 @@ kg; high = 150 kg
     AL1:
       Description: Frequency of consumption of an alcoholic drink of any kind (beer, wine, cider, spirits, cocktails, premixes, liqueurs, homemade alcohol…) in the past 12 months
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: frequency_alcohol
       Answer categories and codes:
         Label:
           1: Every day or almost
@@ -2087,12 +2147,13 @@ kg; high = 150 kg
           -1: Not stated
           -3: Proxy
       Anonymisation rule:
-        Country-specific rule for: "IT: variable removed"
+        Country-specific rule for:
+          IT: REMOVED
 
     AL2:
       Description: Frequency of consumption of an alcoholic drink for Monday — Thursday
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: frequency_alcohol_work_day
       Answer categories and codes:
         Label:
           1: On all 4 days
@@ -2106,12 +2167,13 @@ kg; high = 150 kg
           -3: Proxy
       Filter: AL1 = 1, 2, 3 or 4
       Anonymisation rule:
-        Country-specific rule for: "IT: variable removed"
+        Country-specific rule for:
+          IT: REMOVED
 
     AL3:
       Description: Number of alcoholic (standard) drinks on average on one of the days (Monday to Thursday)
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: total_alcohol_work_day
       Answer categories and codes:
         Label:
           1: 16 or more drinks a day
@@ -2128,12 +2190,13 @@ kg; high = 150 kg
           -3: Proxy
       Filter: (AL1 = 1, 2, 3 or 4) and (AL2 = 1, 2, 3 or 4)
       Anonymisation rule:
-        Country-specific rule for: "IT: variable removed"
+        Country-specific rule for:
+          IT: REMOVED
 
     AL4:
       Description: Frequency of consumption of an alcoholic drink for Friday — Sunday
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: frequency_alcohol_day_off
       Answer categories and codes:
         Label:
           1: On all 3 days
@@ -2146,12 +2209,13 @@ kg; high = 150 kg
           -3: Proxy
       Filter: AL1 = 1, 2, 3 or 4
       Anonymisation rule:
-        Country-specific rule for: "IT: variable removed"
+        Country-specific rule for:
+          IT: REMOVED
 
     AL5:
       Description: Number of alcoholic (standard) drinks on average on one of the days (Friday — Sunday)
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: total_alcohol_day_off
       Answer categories and codes:
         Label:
           1: 16 or more drinks a day
@@ -2168,12 +2232,13 @@ kg; high = 150 kg
           -3: Proxy
       Filter: (AL1 = 1, 2, 3 or 4) and (AL4 = 1, 2, or 3)
       Anonymisation rule:
-        Country-specific rule for: "IT: variable removed"
+        Country-specific rule for:
+          IT: REMOVED
 
     AL6:
       Description: Frequency of risky single-occasion drinking (equivalent of 60 g of pure ethanol or more) during the past 12 months
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: frequency_alcohol_risky
       Answer categories and codes:
         Label:
           1: Every day or almost
@@ -2191,14 +2256,15 @@ kg; high = 150 kg
           -3: Proxy
       Filter: AL1 = 1, 2, 3, 4, 5, 6 or 7
       Anonymisation rule:
-        Country-specific rule for: "IT: variable removed"
+        Country-specific rule for:
+          IT: REMOVED
 
   Social support:
 
     SS1:
       Description: Number of close people to count on in case of serious personal problems
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: total_people_to_rely
       Answer categories and codes:
         Label:
           1 None Everybody unaltered
@@ -2212,7 +2278,7 @@ kg; high = 150 kg
     SS2:
       Description: Degree of concern shown by other people in what the person is doing
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: people_care
       Answer categories and codes:
         Label:
           1: A lot of concern and interest
@@ -2227,7 +2293,7 @@ kg; high = 150 kg
     SS3:
       Description: How easy is it to get practical help from neighbours in case of need
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: difficulty_get_help
       Answer categories and codes:
         Label:
           1: Very easy
@@ -2244,6 +2310,7 @@ kg; high = 150 kg
     IC1:
       Description: Providing care or assistance to one or more persons suffering from some age problem, chronic health condition or infirmity, at least once a week (professional activities excluded)
       Type: indicator
+      Name: provide_care
       Answer categories and codes:
         Label:
           1: Yes
@@ -2251,11 +2318,12 @@ kg; high = 150 kg
         Invalid:
           -1: Not stated
           -3: Proxy
-      Filter:
+      Filter: # todo
 
     IC2:
       Description: Prevailing relationship of the person(s) suffering from any chronic condition or infirmity or due to old age being provided with care or assistance at least once a week from the respondent
       Type: indicator
+      Name: care_person_in_family
       Answer categories and codes:
         Label:
           1: Member(s) of respondent’s family
@@ -2269,7 +2337,7 @@ kg; high = 150 kg
     IC3:
       Description: Number of hours per week the respondent provides care or assistance to the person(s) suffering from any chronic condition or infirmity or due to old age
       Type: ordinal
-      DataType: uint8[pyarrow]
+      Name: hours_care
       Answer categories and codes:
         Label:
           1 Less than 10 hours per week
