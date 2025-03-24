@@ -482,7 +482,13 @@ class Syntets:
                                         on="id_household").drop(columns=["id_household"], errors="ignore")
 
                         # comb = _df.apply(pd.unique)
-                        comb = _df.T.apply(lambda x: x.unique(), axis=1)  # HR 88/89 Avoids horrible Pandas error
+                        # comb = _df.T.apply(lambda x: x.unique(), axis=1)  # HR 88/89 Avoids horrible Pandas error
+                        if len(_df.drop_duplicates()) <= 1:
+                            print(f"Extreme degeneracy detected in {_g}/{_r} with {_total_children} children, can't deal with 0 or 1 unique household in a group; dropping them out")
+                            self.groups[(_g, _r)]["data"] = self.groups[(_g, _r)]["data"][self.groups[(_g, _r)]["data"]["total_children"].ne(_total_children)]
+                            continue
+
+                        comb = _df.apply(pd.unique)
                         exclude = comb[comb.map(len) == 1].map(lambda x: x[0]).to_dict().keys()
                         exclude = [_e for _e in exclude if not _e.endswith(tuple(self._get_postfixes_children(_children)))]
                         # do not drop out degenerate attributes of children
@@ -530,7 +536,13 @@ class Syntets:
                                         on="id_household").drop(columns=["id_household"], errors="ignore")
 
                         # comb = _df.apply(pd.unique)
-                        comb = _df.T.apply(lambda x: x.unique(), axis=1)  # HR 88/89 Avoids horrible Pandas error
+                        # comb = _df.T.apply(lambda x: x.unique(), axis=1)  # HR 88/89 Avoids horrible Pandas error
+                        if len(_df.drop_duplicates()) <= 1:
+                            print(f"Extreme degeneracy detected in {_g}/{_r} with {_total_children} children, can't deal with 0 or 1 unique household in a group; dropping them out")
+                            self.groups[(_g, _r)]["data"] = self.groups[(_g, _r)]["data"][self.groups[(_g, _r)]["data"]["total_children"].ne(_total_children)]
+                            continue
+
+                        comb = _df.apply(pd.unique)
                         exclude = comb[comb.map(len) == 1].map(lambda x: x[0]).to_dict().keys()
                         exclude = [_e for _e in exclude if not _e.endswith(tuple(self._get_postfixes_children(_children)))]
                         # do not drop out degenerate attributes of children
