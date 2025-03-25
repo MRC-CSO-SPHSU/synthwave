@@ -6,10 +6,10 @@ require(argparser)
 
 N_CORES_DEFAULT <- 128
 MAXIT_DEFAULT <- 20
-PROP_DEFAULT <- 1e-2
+FRAC_DEFAULT <- 1e-2
 
 
-do_adults_imputation <- function(path.to.data, subset, n_cores, maxit) {
+do_adults_imputation <- function(path.to.data, fraction, n_cores, maxit) {
 
     set.seed(123)
 
@@ -73,14 +73,13 @@ do_adults_imputation <- function(path.to.data, subset, n_cores, maxit) {
     print("Done!")
 
 
-    if (subset == TRUE)
+    if (fraction != 1.0)
     {
         print("Subsetting data for testing...")
         print(paste0("Current size: ", nrow(ind), " by ", ncol(ind)))
 
-        prop <- PROP_DEFAULT
-        ind <- ind %>% slice_sample(prop=prop, replace=FALSE)
-        print(paste0("Length after subsetting (", as.character(prop*100), "%): ", nrow(ind), " by ", ncol(ind)))
+        ind <- ind %>% slice_sample(prop=fraction, replace=FALSE)
+        print(paste0("Length after subsetting (", as.character(fraction*100), "%): ", nrow(ind), " by ", ncol(ind)))
     }
 
 
@@ -138,16 +137,16 @@ do_adults_imputation <- function(path.to.data, subset, n_cores, maxit) {
 
 ap <- arg_parser("imputation_stage")
 ap <- add_argument(ap, "path_to_data", default=NULL, help="Data source path")
-ap <- add_argument(ap, "--subset", default=FALSE, help="Take tiny subset for testing")
+ap <- add_argument(ap, "--fraction", default=FRAC_DEFAULT, help="Fraction to subset for testing")
 ap <- add_argument(ap, "--n_cores", default=N_CORES_DEFAULT, help="Number of cores to use for imputation")
 ap <- add_argument(ap, "--maxit", default=MAXIT_DEFAULT, help="Maximum number of iterations in imputation" )
 args <- parse_args(ap)
 
 path.to.data <- args$path_to_data
-subset.data <- args$subset
+fraction <- args$fraction
 n_cores <- args$n_cores
 maxit <- args$maxit
 
 paste0('Imputing parquet data in folder ', path.to.data)
-do_adults_imputation(path.to.data, subset.data, n_cores, maxit)
+do_adults_imputation(path.to.data, fraction, n_cores, maxit)
 print('Done!')
