@@ -3,6 +3,8 @@ require(lattice)
 require(dplyr)
 require(arrow)
 require(argparser)
+require(future)
+require(parallel)
 
 N_CORES_DEFAULT <- 128
 MAXIT_DEFAULT <- 20
@@ -10,6 +12,11 @@ FRAC_DEFAULT <- 1e-2
 
 
 do_adults_imputation <- function(path.to.data, fraction, n_cores, maxit) {
+
+    print("availableCores:")
+    print(availableCores())
+    print("detectCores:")
+    print(detectCores())
 
     set.seed(123)
 
@@ -101,7 +108,8 @@ do_adults_imputation <- function(path.to.data, fraction, n_cores, maxit) {
     print("Done!")
 
 
-    print("Doing imputation via MICE...")
+    print("Doing imputation via MICE with n cores...")
+    print(n_cores)
     options(future.globals.maxSize=10485760000)
 
     start_time <- Sys.time()
@@ -114,7 +122,7 @@ do_adults_imputation <- function(path.to.data, fraction, n_cores, maxit) {
                       method = "pmm",
                       pred = pred)
     end_time <- Sys.time()
-    end_time - start_time
+    print(end_time - start_time)
     print("Done!")
 
     imputed.data <- complete(imp, "long")
