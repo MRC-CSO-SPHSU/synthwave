@@ -7,13 +7,13 @@
 #SBATCH --mail-type=FAIL                              # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-type=END
 #SBATCH --mail-user="$6"                              # Where to send mail
-#SBATCH --array=1                                     # Number of runs, --array=1-X will run X jobs (X >= 1)
-###SBATCH --ntasks=1                                    # Number of tasks to run, change as desired - disabled 21/03/24 as distinction with array not clear
+###SBATCH --array=1                                     # Number of runs, --array=1-X will run X jobs (X >= 1)
+#SBATCH --ntasks=1                                    # Number of tasks to run, change as desired
 #SBATCH --cpus-per-task=2                             # Number of CPU cores per task
-#SBATCH --mem=256gb                                   # Job memory request
+#SBATCH --mem=64gb                                   # Job memory request
 #SBATCH --time=01:00:00                               # Time limit hrs:min:sec
-#SBATCH --output=logs/errors/batch-%A-%a.out
-#SBATCH --error=logs/logs/batch-%A-%a.err
+#SBATCH --output="$2"/logs/logs/batch-%A-%a.out
+#SBATCH --error="$2"/logs/errors/batch-%A-%a.err
 
 
 echo -e "\nRunning Synthwave pre-processing steps... \n  Source data path: $2\n  Subset fraction: $4\n  Emails to: $6\n  Time: $8"
@@ -24,9 +24,9 @@ echo -e "Running task $SLURM_ARRAY_TASK_ID of $SLURM_ARRAY_TASK_MAX\n"
 export MAXIT=1  # Testing
 export NCORES=2  # Testing
 
-python src/synthwave/utils/uk/pre_process.py "$2"
-Rscript src/synthwave/synthesizer/imputation/adults_imputation.R "$2" -f "$4" -n $NCORES -m $MAXIT  # Testing
-#Rscript src/synthwave/synthesizer/imputation/adults_imputation.R "$2" -f "$4" -n $SLURM_CPUS_PER_TASK -m $MAXIT
+#python src/synthwave/utils/uk/pre_process.py "$2"
+#Rscript src/synthwave/synthesizer/imputation/adults_imputation.R "$2" -f "$4" -n $NCORES -m $MAXIT  # Testing
+Rscript src/synthwave/synthesizer/imputation/adults_imputation.R "$2" -f "$4" -n $SLURM_CPUS_PER_TASK -m $MAXIT
 #Rscript src/synthwave/synthesizer/imputation/adults_imputation.R "$2" -f "$4" -n $SLURM_CPUS_ON_NODE -m $MAXIT
 # python src/synthwave/synthesizer/correct_and_train.py "$2"
 

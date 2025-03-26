@@ -4,13 +4,13 @@
 TIME=`date +%Y_%m_%d_%H_%M_%S`
 
 # Create these if they don't exist
-mkdir -p logs
-mkdir -p logs/log
-mkdir -p logs/errors
+mkdir -p "$2"/logs
+mkdir -p "$2"/logs/logs
+mkdir -p "$2"/logs/errors
 
 
-#sbatch scripts/aire_run.sh -d "$2" -f "$4" -e "$6" -t $TIME
-bash scripts/aire_run.sh -d "$2" -f "$4" -e "$6" -t $TIME  # Testing
+sbatch scripts/aire_run.sh -d "$2" -f "$4" -e "$6" -t $TIME
+#bash scripts/aire_run.sh -d "$2" -f "$4" -e "$6" -t $TIME  # Testing
 
 # If no errors...
 exit 0
