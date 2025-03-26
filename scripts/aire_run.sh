@@ -6,14 +6,14 @@
 #SBATCH --job-name=synthwave_preprocessing            # Job name
 #SBATCH --mail-type=FAIL                              # Mail events (NONE, BEGIN, END, FAIL, ALL)
 #SBATCH --mail-type=END
-#SBATCH --mail-user="$6"                              # Where to send mail
-###SBATCH --array=1                                     # Number of runs, --array=1-X will run X jobs (X >= 1)
+#SBATCH --mail-user=h.p.rice@leeds.ac.uk              # Where to send mail
+#SBATCH --array=1                                     # Number of runs, --array=1-X will run X jobs (X >= 1)
 #SBATCH --ntasks=1                                    # Number of tasks to run, change as desired
 #SBATCH --cpus-per-task=2                             # Number of CPU cores per task
 #SBATCH --mem=64gb                                   # Job memory request
 #SBATCH --time=01:00:00                               # Time limit hrs:min:sec
-#SBATCH --output="$2"/logs/logs/batch-%A-%a.out
-#SBATCH --error="$2"/logs/errors/batch-%A-%a.err
+#SBATCH --output=logs/logs/batch-%A-%a.out
+#SBATCH --error=logs/errors/batch-%A-%a.err
 
 
 echo -e "\nRunning Synthwave pre-processing steps... \n  Source data path: $2\n  Subset fraction: $4\n  Emails to: $6\n  Time: $8"
