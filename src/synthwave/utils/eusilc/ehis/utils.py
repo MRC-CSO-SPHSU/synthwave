@@ -255,53 +255,54 @@ def populate_recipients(_recipients: pd.DataFrame,
                         donor_columns,
                         age_map,
                         total_iterations=10):
-    _result = []
+    history = []
+    result = []
 
-    _recipients = mutator(_recipients,
-                          {"ordinal_": "uint16[pyarrow]",
+    recipients = mutator(_recipients,
+                         {"ordinal_": "uint16[pyarrow]",
                            "indicator_": "bool[pyarrow]", "category_": "int16[pyarrow]"})
 
-    _recipients['ordinal_age_band'] = pd.cut(x=_recipients['ordinal_age'],
-                                    bins=[15, 17, 19, 24, 29, 34, 39, 44, 49, 54, 59, 64, 69, 74, 79, 84, 120],
-                                    labels=['15-17', '18-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50-54', '55-59', '60-64', '65-69', '70-74', '75-79', '80-84', '85+'],
-                                    include_lowest=True).map(age_map).astype("uint8[pyarrow]")
+    recipients['ordinal_age_band'] = pd.cut(x=recipients['ordinal_age'],
+                                            bins=[15, 17, 19, 24, 29, 34, 39, 44, 49, 54, 59, 64, 69, 74, 79, 84, 120],
+                                            labels=['15-17', '18-19', '20-24', '25-29', '30-34', '35-39', '40-44', '45-49', '50-54', '55-59', '60-64', '65-69', '70-74', '75-79', '80-84', '85+'],
+                                            include_lowest=True).map(age_map).astype("uint8[pyarrow]")
     # TODO remove hardcoded values
 
-    _recipients["ordinal_education"] = (_recipients["category_education_level"] // 100).astype("uint8[pyarrow]")
-    _recipients["category_job_status_mapped"] = _recipients["category_job_status"].mul(10).astype("uint16[pyarrow]")
+    recipients["ordinal_education"] = (recipients["category_education_level"] // 100).astype("uint8[pyarrow]")
+    recipients["category_job_status_mapped"] = recipients["category_job_status"].mul(10).astype("uint16[pyarrow]")
 
-    _recipients["auxiliary_id_recipients"] = range(len(_recipients))
-    _recipients = _recipients[recipient_columns + ["auxiliary_id_recipients"]]
+    recipients["auxiliary_id_recipients"] = range(len(recipients))
+    recipients = recipients[recipient_columns + ["auxiliary_id_recipients"]]
 
-    _recipients_local = _recipients.copy()
-    _recipients_local["matched"] = False
-    _recipients_local["matched"] = _recipients_local["matched"].astype("bool[pyarrow]")
+    recipients_local = recipients.copy()
+    recipients_local["matched"] = False
+    recipients_local["matched"] = recipients_local["matched"].astype("bool[pyarrow]")
 
     for _ in range(total_iterations):
         # Skip if all rows are already matched
-        if _recipients_local['matched'].all():
+        if recipients_local['matched'].all():
             print("All rows matched. Stopping early.")
             break
 
-        _synthetic_donors = model.sample(num_rows=10_000_000, batch_size=1_000_000)
+        synthetic_donors = model.sample(num_rows=10_000_000, batch_size=1_000_000)
 
-        _synthetic_donors = _synthetic_donors[donor_columns + list(target_columns)]
+        synthetic_donors = synthetic_donors[donor_columns + list(target_columns)]
 
-        _synthetic_donors = mutator(_synthetic_donors, {"ordinal_": "uint16[pyarrow]", "indicator_": "bool[pyarrow]", "category_": "int8[pyarrow]"})
+        synthetic_donors = mutator(synthetic_donors, {"ordinal_": "uint16[pyarrow]", "indicator_": "bool[pyarrow]", "category_": "int8[pyarrow]"})
 
-        _synthetic_donors["category_person_country_birth"] = _synthetic_donors["category_person_country_birth"].map({10: True, 21: False, 22: False}).astype("bool[pyarrow]")
-        _synthetic_donors["category_person_region"] = (_synthetic_donors["category_person_region"] // 10).astype("uint8[pyarrow]")
+        synthetic_donors["category_person_country_birth"] = synthetic_donors["category_person_country_birth"].map({10: True, 21: False, 22: False}).astype("bool[pyarrow]")
+        synthetic_donors["category_person_region"] = (synthetic_donors["category_person_region"] // 10).astype("uint8[pyarrow]")
 
         # Filter for unmatched rows only
-        to_populate = _recipients_local[~_recipients_local['matched']].copy()
+        to_populate = recipients_local[~recipients_local['matched']].copy()
 
         # First, identify how many matching records exist for each combination of merging keys in the donor dataset
-        _match_counts = _synthetic_donors.groupby(donor_columns).size().reset_index(name='match_count')
+        match_counts = synthetic_donors.groupby(donor_columns).size().reset_index(name='match_count')
 
         # Merge this information with target dataset to know how many potential matches each target row has
         to_populate = pd.merge(
             to_populate,
-            _match_counts,
+            match_counts,
             how="left",
             left_on=recipient_columns,
             right_on=donor_columns
@@ -311,27 +312,27 @@ def populate_recipients(_recipients: pd.DataFrame,
         to_populate['group_idx'] = to_populate["match_count"].map(lambda x: np.random.randint(0, max(1, x)) if x > 0 else 0).astype("uint16[pyarrow]")
 
         # Add cumcount index to donors
-        _synthetic_donors['group_idx'] = _synthetic_donors.groupby(donor_columns).cumcount().astype("uint16[pyarrow]")
+        synthetic_donors['group_idx'] = synthetic_donors.groupby(donor_columns).cumcount().astype("uint16[pyarrow]")
 
          # Merge using the random group_idx
         matched_in_this_round = pd.merge(
             to_populate[to_populate['match_count'] > 0],
-            _synthetic_donors,
+            synthetic_donors,
             how="left",
             left_on=recipient_columns + ["group_idx"],
             right_on=donor_columns + ["group_idx"]
         ).drop(columns=donor_columns + ["group_idx", "match_count"])
 
         if len(matched_in_this_round) > 0:
-            print(len(matched_in_this_round), f"{len(matched_in_this_round) * 100.0 / len(_recipients)}%")
+            print(len(matched_in_this_round), f"{len(matched_in_this_round) * 100.0 / len(recipients)}%")
             # Append to result
-            _result.append(matched_in_this_round)
+            result.append(matched_in_this_round)
 
             # Update matched status in local copy
-            _recipients_local.loc[_recipients_local['auxiliary_id_recipients'].isin(matched_in_this_round['auxiliary_id_recipients']), 'matched'] = True
+            recipients_local.loc[recipients_local['auxiliary_id_recipients'].isin(matched_in_this_round['auxiliary_id_recipients']), 'matched'] = True
 
         # Handle any remaining unmatched rows
-        remaining_unmatched = _recipients_local[~_recipients_local['matched']].drop(columns=['matched'])
+        remaining_unmatched = recipients_local[~recipients_local['matched']].drop(columns=['matched'])
         print(len(remaining_unmatched))
 
-    return pd.concat(_result)
+    return pd.concat(result)
