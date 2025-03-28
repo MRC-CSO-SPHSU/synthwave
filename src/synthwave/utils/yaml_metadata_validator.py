@@ -73,7 +73,7 @@ class YAMLMetadataValidator:
         for _v in cls.extract_columns(_metadata):
             _keys += list(_v.keys())
 
-        if len(_keys) != set(_keys):
+        if len(_keys) != len(set(_keys)):
             seen = set()
             duplicates = []
 
