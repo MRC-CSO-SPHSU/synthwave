@@ -254,7 +254,7 @@ def populate_recipients(_recipients: pd.DataFrame,
                         recipient_columns,
                         donor_columns,
                         age_map,
-                        total_iterations=10):
+                        verbose=True):
     history = []
     result = []
 
@@ -278,11 +278,8 @@ def populate_recipients(_recipients: pd.DataFrame,
     recipients_local["matched"] = False
     recipients_local["matched"] = recipients_local["matched"].astype("bool[pyarrow]")
 
-    for _ in range(total_iterations):
-        # Skip if all rows are already matched
-        if recipients_local['matched'].all():
-            print("All rows matched. Stopping early.")
-            break
+    interation_index = 0
+    while not recipients_local['matched'].all():
 
         synthetic_donors = model.sample(num_rows=10_000_000, batch_size=1_000_000)
 
@@ -324,7 +321,6 @@ def populate_recipients(_recipients: pd.DataFrame,
         ).drop(columns=donor_columns + ["group_idx", "match_count"])
 
         if len(matched_in_this_round) > 0:
-            print(len(matched_in_this_round), f"{len(matched_in_this_round) * 100.0 / len(recipients)}%")
             # Append to result
             result.append(matched_in_this_round)
 
@@ -333,6 +329,16 @@ def populate_recipients(_recipients: pd.DataFrame,
 
         # Handle any remaining unmatched rows
         remaining_unmatched = recipients_local[~recipients_local['matched']].drop(columns=['matched'])
-        print(len(remaining_unmatched))
 
-    return pd.concat(result)
+        history.append(len(matched_in_this_round))
+
+        if verbose:
+            print(f"Round {interation_index} | "
+                  f"matched {len(matched_in_this_round)} records | "
+                  f"relative change {len(matched_in_this_round) * 100.0 / len(recipients):.2f}% | "
+                  f"records left to match {len(remaining_unmatched)} | "
+                  f"estimated rounds left {round(len(remaining_unmatched) / np.mean(history))}")
+
+        interation_index += 1
+
+    return pd.concat(result), history
