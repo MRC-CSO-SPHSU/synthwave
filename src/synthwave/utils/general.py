@@ -1,7 +1,8 @@
 from pathlib import Path
 
 import pandas as pd
-
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 def path_validation(path_: Path | str) -> Path:
     """Ensures that the argument is a valid Path object or string.
@@ -172,3 +173,39 @@ def generate_personal_ids(_df: pd.DataFrame, contains_couples=False) -> pd.DataF
     else:
         return _df.assign(id_person = lambda x: x["id_household"] + x[["id_household"]].groupby(["id_household"]).cumcount(),
                           id_partner = pd.NA)
+
+def build_correlation_heatmap(df,
+                              default_prefixes: tuple[str, ...] = ("ordinal_", "income_", "total_", "category_", "indicator_"),
+                              no_transform: tuple[str, ...] = ("indicator_", "category"),
+                              to_sort=True):
+    _df_local = df[[_c for _c in df.columns if _c.startswith(default_prefixes)]].copy()
+
+    for c in _df_local.columns:
+        if c.startswith(default_prefixes) and not c.startswith(no_transform):
+            _df_local[c] = _df_local[c].astype("int32[pyarrow]")
+            _df_local[c + "_squared"] = _df_local[c] * _df_local[c]
+            _df_local[c + "_cubed"] = _df_local[c + "_squared"] * _df_local[c]
+
+    plt.figure(figsize=(40, 40))
+    correlation = _df_local.corr()
+
+    if to_sort:
+        sum_corr = correlation.sum().sort_values(ascending=True).index.values
+
+        return sns.heatmap(_df_local[sum_corr].corr(), vmin=-1, vmax=1, annot=True, cmap='BrBG', fmt=".1g", square=True)
+    else:
+        return sns.heatmap(correlation, vmin=-1, vmax=1, annot=True, cmap='BrBG', fmt=".1g", square=True)
+
+def scale_sample(df: pd.DataFrame, scale_column: str | None = None) -> pd.DataFrame | None:
+    if scale_column is None:
+        return None
+    else:
+        return (df
+                .reindex(df
+                         .index
+                         .repeat(df[scale_column])
+                         )
+                .sample(frac=1, random_state=42)
+                .reset_index(drop=True)
+                .drop(columns=scale_column)
+                )

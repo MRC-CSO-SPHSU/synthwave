@@ -4,6 +4,8 @@ import pandas as pd
 import numpy as np
 import yaml
 from importlib.resources import files
+
+from synthwave.utils.general import scale_sample
 from synthwave.utils.yaml_metadata_validator import YAMLMetadataValidator
 from synthwave.synthesizer.abstract.constraints import CustomConstraint
 from rdt.transformers import FloatFormatter
@@ -149,7 +151,7 @@ def pre_imputation(file_path,
 
     df = df.assign(weight_person=lambda x: round(x.weight_person * factor_)).astype({'weight_person': 'uint32[pyarrow]'})
 
-    df = df.reindex(df.index.repeat(df['weight_person'])).sample(frac=1, random_state=42).reset_index(drop=True).drop(columns='weight_person')
+    df = scale_sample(df, "weight_person")
 
     df.loc[df["category_person_job_status"].isna(),["indicator_person_full_time",
                                                         "category_person_job_status2",
