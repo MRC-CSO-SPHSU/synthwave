@@ -3,9 +3,9 @@ import string
 from pathlib import Path
 from typing import Tuple
 
-from synthwave.utils.general import path_validation
+from synthwave.utils.general import path_validation, scale_sample
 
-from synthwave.utils.uk.preprocessing import process_households, scale_sample
+from synthwave.utils.uk.preprocessing import process_households
 from importlib.resources import files
 
 import pandas as pd
@@ -653,7 +653,7 @@ def preprocess_usoc_data(_path="~/Work/data/", skip_conversion=True):
 
     adults["indicator_household_has_central_heating"] = adults["indicator_household_has_central_heating"].map({1: True, 2: False}).astype("bool[pyarrow]")
 
-    adults = scale_sample(adults)
+    adults = scale_sample(adults, "weight_household")
 
     _p = path_validation(_path).expanduser()
 

@@ -63,15 +63,3 @@ def process_households(_df: pd.DataFrame) -> pd.DataFrame:
 
     logger.info(f"{_missing_dates} households miss the interview date")
     return _df
-
-def scale_sample(df_: pd.DataFrame) -> pd.DataFrame:
-    return (df_
-            .reindex(df_
-                     .index
-                     .repeat(df_['weight_household'])
-                     )
-            .sample(frac=1, random_state=42)
-            .reset_index(drop=True)
-            .drop(columns='weight_household')
-            )
-    # TODO check the description of weights, they must be applied to selected columns only?
