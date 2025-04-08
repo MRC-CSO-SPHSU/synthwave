@@ -241,10 +241,9 @@ class Syntets:
                 }
             }
 
-        def get_inequality(_columns: list, _table_name: str) -> dict:
+        def get_inequality(_columns: list) -> dict:
             return {
                 'constraint_class': 'Inequality',
-                'table_name': _table_name,
                 'constraint_parameters': {
                     'low_column_name': _columns[0],
                     'high_column_name': _columns[1],
@@ -259,17 +258,17 @@ class Syntets:
             if _g.startswith(("c", "m")): # this constraint always works because we sort the data in advance
                 self.groups[(_g, _r)]["model"].add_constraints(constraints=[
                     get_inequality(["ordinal_person_age_a0",
-                                    "ordinal_person_age_a1"], f"{_g}_{_r}"),
+                                    "ordinal_person_age_a1"]),
                 ])
             if _g in ["m3", "m4"]:
                 self.groups[(_g, _r)]["model"].add_constraints(constraints=[
                     get_inequality(["ordinal_person_age_a1",
-                                    "ordinal_person_age_a2"], f"{_g}_{_r}"),
+                                    "ordinal_person_age_a2"]),
                 ])
             if _g == "m4":
                 self.groups[(_g, _r)]["model"].add_constraints(constraints=[
                     get_inequality(["ordinal_person_age_a2",
-                                    "ordinal_person_age_a3"], f"{_g}_{_r}"),
+                                    "ordinal_person_age_a3"]),
                 ])
 
             if _g.startswith("c") or _g in ["mc3", "mc4"]:
