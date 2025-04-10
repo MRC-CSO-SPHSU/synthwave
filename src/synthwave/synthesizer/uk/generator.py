@@ -256,28 +256,32 @@ class Syntets:
 
             # Age constraints where possible
             if _g.startswith(("c", "m")): # this constraint always works because we sort the data in advance
-                self.groups[(_g, _r)]["model"].add_constraints(constraints=[
-                    get_inequality(["ordinal_person_age_a0",
-                                    "ordinal_person_age_a1"]),
-                ])
+                if ("ordinal_person_age_a0" in self.groups[(_g, _r)]["data"].columns) and ("ordinal_person_age_a1" in self.groups[(_g, _r)]["data"].columns):
+                    self.groups[(_g, _r)]["model"].add_constraints(constraints=[
+                        get_inequality(["ordinal_person_age_a0",
+                                        "ordinal_person_age_a1"]),
+                    ])
             if _g in ["m3", "m4"]:
-                self.groups[(_g, _r)]["model"].add_constraints(constraints=[
-                    get_inequality(["ordinal_person_age_a1",
-                                    "ordinal_person_age_a2"]),
-                ])
+                if ("ordinal_person_age_a1" in self.groups[(_g, _r)]["data"].columns) and ("ordinal_person_age_a2" in self.groups[(_g, _r)]["data"].columns):
+                    self.groups[(_g, _r)]["model"].add_constraints(constraints=[
+                        get_inequality(["ordinal_person_age_a1",
+                                        "ordinal_person_age_a2"]),
+                    ])
             if _g == "m4":
-                self.groups[(_g, _r)]["model"].add_constraints(constraints=[
-                    get_inequality(["ordinal_person_age_a2",
-                                    "ordinal_person_age_a3"]),
-                ])
+                if ("ordinal_person_age_a2" in self.groups[(_g, _r)]["data"].columns) and ("ordinal_person_age_a3" in self.groups[(_g, _r)]["data"].columns):
+                    self.groups[(_g, _r)]["model"].add_constraints(constraints=[
+                        get_inequality(["ordinal_person_age_a2",
+                                        "ordinal_person_age_a3"]),
+                    ])
 
             if _g.startswith("c") or _g in ["mc3", "mc4"]:
-                self.groups[(_g, _r)]["model"].add_constraints(constraints=[
-                    # category_person_legal_marital_status in couples should have a fixed number of combinations;
-                    # this works for any household with a couple inside by data design
-                    get_combinations(["category_person_legal_marital_status_a0",
-                                      "category_person_legal_marital_status_a1"])
-                ])
+                if ("category_person_legal_marital_status_a0" in self.groups[(_g, _r)]["data"].columns) and ("category_person_legal_marital_status_a1" in self.groups[(_g, _r)]["data"].columns):
+                    self.groups[(_g, _r)]["model"].add_constraints(constraints=[
+                        # category_person_legal_marital_status in couples should have a fixed number of combinations;
+                        # this works for any household with a couple inside by data design
+                        get_combinations(["category_person_legal_marital_status_a0",
+                                          "category_person_legal_marital_status_a1"])
+                    ])
 
             # add to the list of constraint classes
             for klass in [MetaEmployment, BenefitsIncome, MetaEmploymentNoSecondJob]:
