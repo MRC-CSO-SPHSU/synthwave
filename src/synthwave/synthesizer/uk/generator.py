@@ -294,11 +294,13 @@ class Syntets:
                 # TODO add a check to make sure all columns are in there. should never happen
                 # TODO order of constraints matters; do some tests
                 # we repeat this for every adult in the household
-                self.groups[(_g, _r)]["model"].add_constraints([
-                    get_combinations([_c for _c in self.groups[(_g, _r)]["data"].columns if "qualification" in _c and _c.endswith(_p)]),
-                    # the number of columns can vary from group to group
-                    # FIXME the benefits have been corrupted by imputation and therefore do not pass the constraint check
-                ])
+                quals = [_c for _c in self.groups[(_g, _r)]["data"].columns if "qualification" in _c and _c.endswith(_p)]
+                if len(quals) > 0:
+                    self.groups[(_g, _r)]["model"].add_constraints([
+                        get_combinations(quals),
+                        # the number of columns can vary from group to group
+                    ])
+                # FIXME the benefits have been corrupted by imputation and therefore do not pass the constraint check
                 if "income_person_second_job" + _p in  self.groups[(_g, _r)]["data"].columns:
                     self.groups[(_g, _r)]["model"].add_constraints([
                                             MetaEmployment.get_schema(
