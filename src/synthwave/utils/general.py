@@ -117,7 +117,7 @@ def is_clean(_column: pd.Series, _codes: list) -> bool:
 def generate_household_id(_sample_size: int = 10_000_000,
                           _mini_batch_id: int = None,
                           _micro_batch_id: int = None,
-                          _region_id: int = None,
+                          _region_id: pd.Series = None,
                           _household_type: int = None) -> pd.Series:
     """
 
@@ -152,12 +152,10 @@ def generate_household_id(_sample_size: int = 10_000_000,
 
     def _build_id_base():
         return (_household_type * 1_00_0_00_0000000_00 +
-                        _region_id * 1_0_00_0000000_00 +
                       _mini_batch_id * 1_00_0000000_00 +
                         _micro_batch_id * 1_0000000_00)
 
-    return pd.Series(
-        range(_build_id_base(), _build_id_base() + _sample_size * 100, 100))
+    return pd.Series(range(_build_id_base(), _build_id_base() + _sample_size * 100, 100)) + _region_id * 1_0_00_0000000_00
 
 def generate_personal_ids(_df: pd.DataFrame, contains_couples=False) -> pd.DataFrame:
     # at this stage household ids have been re-integrated into the dataset, and it is in the long format

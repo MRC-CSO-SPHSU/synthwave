@@ -19,7 +19,7 @@ def main(data_path, save_path=None):
     print("Done!")
 
     # 2. Train model
-    print("Creating generator and restructure data...")
+    print("Creating generator and restructuring data...")
     generator = Syntets(adults)
     generator.split_data()
     generator.restructure_data()
@@ -45,7 +45,7 @@ def main(data_path, save_path=None):
     generator.drop_id_columns()  # we need ids to learn how children are formed
     generator.locate_degenerate_distributions()
     generator.convert_types()
-    generator.init_models(_epochs=5)
+    generator.init_models(_epochs=1)
     generator.attach_constraints()
 
     print("Running main training...")

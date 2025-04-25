@@ -36,7 +36,6 @@ class Syntets:
     def __init__(self, raw_data):
         self.raw_data = raw_data.copy()
         self.data = self.raw_data.copy()
-        self.locations = raw_data["category_household_location"].unique()
         self.household_types = raw_data["category_household_type"].unique()
 
         self.groups = dict()
@@ -64,56 +63,53 @@ class Syntets:
 
     def convert_types(self):
         # unfortunately, ctgan still struggles to deal well with modern types, we replace all of them
-        for _g, _r in self.subsets:
-            _columns = self.groups[(_g, _r)]["data"].columns
+        for _g in self.subsets:
+            _columns = self.groups[_g]["data"].columns
             _int_target = []
 
             for _c in _columns:
                 if _c.split("_")[0] in ["category", "hours", "ordinal", "income", "ordinal", "total", "minutes"] and _c != "category_household_type":
                     _int_target.append(_c)
 
-            self.groups[(_g, _r)]["data"][_int_target] = self.groups[(_g, _r)]["data"][_int_target].astype(int)
+            self.groups[_g]["data"][_int_target] = self.groups[_g]["data"][_int_target].astype(int)
 
             _bools = [_c for _c in _columns if _c.startswith(("indicator_", "mlb_"))]
-            self.groups[(_g, _r)]["data"][_bools] = self.groups[(_g, _r)]["data"][_bools].astype(bool)
+            self.groups[_g]["data"][_bools] = self.groups[_g]["data"][_bools].astype(bool)
 
     def split_data(self):
         for _g in Syntets.DEFAULT_GROUPS:
-            for _r in self.locations:
-                d = self._splitter(self.data, [_g], _r)
-                if not _g.endswith("+"):
-                    d = d.drop(columns=["total_children"])
-                if len(d) > 0:
-                    self.subsets.append((_g, _r))
-                    self.groups[(_g, _r)] = {"data": d, "model": None, "dropouts": None}
+            d = self._splitter(self.data, [_g])
+            if not _g.endswith("+"):
+                d = d.drop(columns=["total_children"])
+            if len(d) > 0:
+                self.subsets.append(_g)
+                self.groups[_g] = {"data": d, "model": None, "dropouts": None}
 
     @staticmethod
-    def _splitter(_df: pd.DataFrame, _type: list, _location: int) -> pd.DataFrame:
+    def _splitter(_df: pd.DataFrame, _type: list) -> pd.DataFrame:
         # select a subset
-        return (_df[_df["category_household_type"].isin(_type) &
-                    _df["category_household_location"].eq(_location)]
+        return (_df[_df["category_household_type"].isin(_type)]
                 .copy()
                 .drop(columns=["category_household_type",
-                               "category_household_location",
                                ]).reset_index(drop=True))
     # we don't need household type any more, another hh classification will be introduced at the post-synthesis stage
 
     def locate_degenerate_distributions(self):
          # degeneracy might appear when we convert from long to wide
-        for _g, _r in self.subsets:
-            if self.groups[(_g, _r)]["data"] is None:
-                logger.warning(f"Dataset {_g} for region {_r} is missing")
+        for _g in self.subsets:
+            if self.groups[_g]["data"] is None:
+                logger.warning(f"Dataset {_g} is missing")
                 continue
             else:
-                _combinations = self.groups[(_g, _r)]["data"].apply(pd.unique)
+                _combinations = self.groups[_g]["data"].apply(pd.unique)
                 _exclude = _combinations[_combinations.map(len) == 1].map(lambda x: x[0]).to_dict()
-                self.groups[(_g, _r)]["dropouts"] = _exclude
-                self.groups[(_g, _r)]["data"].drop(columns=_exclude.keys(), inplace=True)
+                self.groups[_g]["dropouts"] = _exclude
+                self.groups[_g]["data"].drop(columns=_exclude.keys(), inplace=True)
 
                 _cmb = _combinations[_combinations.index.str.startswith("category_") &
                                      _combinations.map(len).eq(2)]
                 if len(_cmb) > 0:
-                    _msg = f"In region {_r} and household {_g} columns {_cmb.index} are potential candidates for remapping"
+                    _msg = f"In household {_g} columns {_cmb.index} are potential candidates for remapping"
                     logger.warning(_msg)
 
     @staticmethod
@@ -125,27 +121,26 @@ class Syntets:
         return _columns
 
     def restructure_data(self):
-        for _g, _r in self.subsets:
-
-            _columns_household = self._get_household_attributes(self.groups[(_g, _r)]["data"])
+        for _g in self.subsets:
+            _columns_household = self._get_household_attributes(self.groups[_g]["data"])
 
             if _g.endswith("+"):
                 _columns_household.append("total_children")
 
-            household_attributes = self.groups[(_g, _r)]["data"][_columns_household + ["id_household"]].copy().drop_duplicates()
+            household_attributes = self.groups[_g]["data"][_columns_household + ["id_household"]].copy().drop_duplicates()
 
-            self.groups[(_g, _r)]["data"].drop(columns=_columns_household, inplace=True)
+            self.groups[_g]["data"].drop(columns=_columns_household, inplace=True)
 
             if not _g.startswith("a"):
                 if _g.startswith("c"):
-                    self.groups[(_g, _r)]["data"].sort_values(by=["id_household",
+                    self.groups[_g]["data"].sort_values(by=["id_household",
                                                                   'ordinal_person_age', # now first person is always younger, but sex can vary
                                                                   'indicator_person_sex'], inplace=True)
                 elif _g.startswith("m"):
                     if "c" in _g:
-                        self.groups[(_g, _r)]["data"]["is_in_couple"] = self.groups[(_g, _r)]["data"]["id_partner"].notna()
-                        self.groups[(_g, _r)]["data"] = self.groups[(_g, _r)]["data"].drop(columns="id_partner")
-                        self.groups[(_g, _r)]["data"] = Procrustes.stretch_wide_adults(self.groups[(_g, _r)]["data"].
+                        self.groups[_g]["data"]["is_in_couple"] = self.groups[_g]["data"]["id_partner"].notna()
+                        self.groups[_g]["data"] = self.groups[_g]["data"].drop(columns="id_partner")
+                        self.groups[_g]["data"] = Procrustes.stretch_wide_adults(self.groups[_g]["data"].
                                                                                        sort_values(["id_household", "is_in_couple", "ordinal_person_age"], ascending=False).
                                                                                        drop(columns="is_in_couple"))
                         # for mc3/mc4 the rules are as follows:
@@ -156,20 +151,20 @@ class Syntets:
                     else:
                         # for m3/m4 we sort by age and sex, this is the only reasonable assumption here
                         # - age of a0 >= age of a1 >= age of a2
-                        self.groups[(_g, _r)]["data"] = Procrustes.stretch_wide_adults(self.groups[(_g, _r)]["data"].
+                        self.groups[_g]["data"] = Procrustes.stretch_wide_adults(self.groups[_g]["data"].
                                                                                        sort_values(["id_household", "ordinal_person_age", "indicator_person_sex"], ascending=False))
                 else:
                     pass # TODO make sure the code is adjusted for mf
 
-            self.groups[(_g, _r)]["data"] = self.groups[(_g, _r)]["data"].merge(household_attributes, how="left", on="id_household")
+            self.groups[_g]["data"] = self.groups[_g]["data"].merge(household_attributes, how="left", on="id_household")
             # we store the household attributes in a separate dataframe and merge it with the transformed one
             # we could do this for transformed tables only, but the performance hit is negligible
 
     def drop_id_columns(self):
         # we keep this bit in a separate function because we need id_household for children
-        for _g, _r in self.subsets:
-            _columns_id = [_c for _c in self.groups[(_g, _r)]["data"] if _c.startswith("id_")]
-            self.groups[(_g, _r)]["data"].drop(columns=_columns_id, inplace=True)
+        for _g in self.subsets:
+            _columns_id = [_c for _c in self.groups[_g]["data"] if _c.startswith("id_")]
+            self.groups[_g]["data"].drop(columns=_columns_id, inplace=True)
 
     @staticmethod
     def _get_postfixes(_df) -> list[str] | list[str, ...]:
@@ -194,21 +189,21 @@ class Syntets:
             return [""]
 
     def init_models(self, _use_cuda=False, _batch_size=5000, _epochs=5000):
-        for _g, _r in self.subsets:
-            self.groups[(_g, _r)]["model"] = CTGANSynthesizer(metadata_constructor(self.groups[(_g, _r)]["data"], f"{_g}_{_r}"),
+        for _g in self.subsets:
+            self.groups[_g]["model"] = CTGANSynthesizer(metadata_constructor(self.groups[_g]["data"], f"{_g}"),
                                                               enforce_rounding=False,
                                                               epochs=_epochs,
                                                               verbose=True,
                                                               cuda=_use_cuda,
                                                               batch_size=_batch_size
                                                               )
-            self.groups[(_g, _r)]["model"].validate(self.groups[(_g, _r)]["data"])
-            self.groups[(_g, _r)]["model"].auto_assign_transformers(self.groups[(_g, _r)]["data"])
+            self.groups[_g]["model"].validate(self.groups[_g]["data"])
+            self.groups[_g]["model"].auto_assign_transformers(self.groups[_g]["data"])
 
-            for _c, _t in self.groups[(_g, _r)]["model"].get_transformers().items():
+            for _c, _t in self.groups[_g]["model"].get_transformers().items():
                 if _t is not None:
                     _repr = _t.computer_representation
-                    self.groups[(_g, _r)]["model"].update_transformers(column_name_to_transformer={_c: FloatFormatter(enforce_min_max_values=True,
+                    self.groups[_g]["model"].update_transformers(column_name_to_transformer={_c: FloatFormatter(enforce_min_max_values=True,
                                                                                                                       computer_representation=_repr)})
 
     def attach_constraints(self):
@@ -223,15 +218,15 @@ class Syntets:
                 }
             }
 
-        for _g, _r in self.subsets:
+        for _g in self.subsets:
             # these are general constraints for every column of the kind
             # because we use minutes instead of hours we can't say income is always >= time due to minimal rate;
             # we can't also say the opposite due to variable rates
-            for _c in self.groups[(_g, _r)]["data"].columns:
+            for _c in self.groups[_g]["data"].columns:
                 if "minutes" in _c:
-                    self.groups[(_g, _r)]["model"].add_constraints([get_increments(_c, 15)])
+                    self.groups[_g]["model"].add_constraints([get_increments(_c, 15)])
                 if "income" in _c:
-                    self.groups[(_g, _r)]["model"].add_constraints([get_increments(_c, 10)])
+                    self.groups[_g]["model"].add_constraints([get_increments(_c, 10)])
         # TODO we can have a custom constraint for income rate?
 
         def get_combinations(_columns: list) -> dict:
@@ -252,37 +247,41 @@ class Syntets:
                 }
             }
 
-        for _g, _r in self.subsets:
-            postfixes = self._get_postfixes(self.groups[(_g, _r)]["data"])
+        for _g in self.subsets:
+            postfixes = self._get_postfixes(self.groups[_g]["data"])
 
             # Age constraints where possible
             if _g.startswith(("c", "m")): # this constraint always works because we sort the data in advance
-                self.groups[(_g, _r)]["model"].add_constraints(constraints=[
-                    get_inequality(["ordinal_person_age_a0",
-                                    "ordinal_person_age_a1"]),
-                ])
+                if ("ordinal_person_age_a0" in self.groups[_g]["data"].columns) and ("ordinal_person_age_a1" in self.groups[_g]["data"].columns):
+                    self.groups[_g]["model"].add_constraints(constraints=[
+                        get_inequality(["ordinal_person_age_a0",
+                                        "ordinal_person_age_a1"]),
+                    ])
             if _g in ["m3", "m4"]:
-                self.groups[(_g, _r)]["model"].add_constraints(constraints=[
-                    get_inequality(["ordinal_person_age_a1",
-                                    "ordinal_person_age_a2"]),
-                ])
+                if ("ordinal_person_age_a1" in self.groups[_g]["data"].columns) and ("ordinal_person_age_a2" in self.groups[_g]["data"].columns):
+                    self.groups[_g]["model"].add_constraints(constraints=[
+                        get_inequality(["ordinal_person_age_a1",
+                                        "ordinal_person_age_a2"]),
+                    ])
             if _g == "m4":
-                self.groups[(_g, _r)]["model"].add_constraints(constraints=[
-                    get_inequality(["ordinal_person_age_a2",
-                                    "ordinal_person_age_a3"]),
-                ])
+                if ("ordinal_person_age_a2" in self.groups[_g]["data"].columns) and ("ordinal_person_age_a3" in self.groups[_g]["data"].columns):
+                    self.groups[_g]["model"].add_constraints(constraints=[
+                        get_inequality(["ordinal_person_age_a2",
+                                        "ordinal_person_age_a3"]),
+                    ])
 
             if _g.startswith("c") or _g in ["mc3", "mc4"]:
-                self.groups[(_g, _r)]["model"].add_constraints(constraints=[
-                    # category_person_legal_marital_status in couples should have a fixed number of combinations;
-                    # this works for any household with a couple inside by data design
-                    get_combinations(["category_person_legal_marital_status_a0",
-                                      "category_person_legal_marital_status_a1"])
-                ])
+                if ("category_person_legal_marital_status_a0" in self.groups[_g]["data"].columns) and ("category_person_legal_marital_status_a1" in self.groups[_g]["data"].columns):
+                    self.groups[_g]["model"].add_constraints(constraints=[
+                        # category_person_legal_marital_status in couples should have a fixed number of combinations;
+                        # this works for any household with a couple inside by data design
+                        get_combinations(["category_person_legal_marital_status_a0",
+                                          "category_person_legal_marital_status_a1"])
+                    ])
 
             # add to the list of constraint classes
             for klass in [MetaEmployment, BenefitsIncome, MetaEmploymentNoSecondJob]:
-                self.groups[(_g, _r)]["model"].add_custom_constraint_class(create_custom_constraint_class(klass.is_valid,
+                self.groups[_g]["model"].add_custom_constraint_class(create_custom_constraint_class(klass.is_valid,
                                                                                                           klass.transform,
                                                                                                           klass.reverse_transform),
                                                                            klass.__name__)
@@ -291,13 +290,15 @@ class Syntets:
                 # TODO add a check to make sure all columns are in there. should never happen
                 # TODO order of constraints matters; do some tests
                 # we repeat this for every adult in the household
-                self.groups[(_g, _r)]["model"].add_constraints([
-                    get_combinations([_c for _c in self.groups[(_g, _r)]["data"].columns if "qualification" in _c and _c.endswith(_p)]),
-                    # the number of columns can vary from group to group
-                    # FIXME the benefits have been corrupted by imputation and therefore do not pass the constraint check
-                ])
-                if "income_person_second_job" + _p in self.groups[(_g, _r)]["data"].columns:
-                    self.groups[(_g, _r)]["model"].add_constraints([
+                quals = [_c for _c in self.groups[_g]["data"].columns if "qualification" in _c and _c.endswith(_p)]
+                if len(quals) > 0:
+                    self.groups[_g]["model"].add_constraints([
+                        get_combinations(quals),
+                        # the number of columns can vary from group to group
+                    ])
+                # FIXME the benefits have been corrupted by imputation and therefore do not pass the constraint check
+                if "income_person_second_job" + _p in self.groups[_g]["data"].columns:
+                    self.groups[_g]["model"].add_constraints([
                         MetaEmployment.get_schema(
                             ["indicator_person_is_self_employed" + _p,
                              "indicator_person_is_employed" + _p,
@@ -316,7 +317,7 @@ class Syntets:
 
                              "income_person_second_job" + _p])])
                 else:
-                    self.groups[(_g, _r)]["model"].add_constraints([
+                    self.groups[_g]["model"].add_constraints([
                         MetaEmploymentNoSecondJob.get_schema(
                             ["indicator_person_is_self_employed" + _p,
                              "indicator_person_is_employed" + _p,
@@ -339,25 +340,25 @@ class Syntets:
             print("Folder for trained data not found; creating at {}".format(save_path))
             os.makedirs(save_path)
 
-        for _g, _r in self.subsets:
+        for _g in self.subsets:
             if verbose:
-                print(_g, _r)
-                print(self.groups[(_g, _r)]["dropouts"])
-                print(len(self.groups[(_g, _r)]["data"]))
+                print(_g)
+                print(self.groups[_g]["dropouts"])
+                print(len(self.groups[_g]["data"]))
 
-            self.groups[(_g, _r)]["model"].fit(self.groups[(_g, _r)]["data"])
-            fullpath = os.path.join(save_path, f'model_{_g}_{_r}.pkl')
-            self.groups[(_g, _r)]["model"].save(fullpath)
+            # yaml_path = os.path.join(save_path, f'dropouts_{_g}_{_r}.yaml')
+            # with open(yaml_path, 'w') as yml:
+            #     yaml.dump(self.groups[(_g, _r)]["dropouts"], yml, allow_unicode=True)
+            self.groups[_g]["model"].fit(self.groups[_g]["data"])
+            self.groups[_g]["model"].save(filepath=save_path + f'model_{_g}.pkl')
 
-            yaml_path = os.path.join(save_path, f'dropouts_{_g}_{_r}.yaml')
-            with open(yaml_path, 'w') as yml:
-                yaml.dump(self.groups[(_g, _r)]["dropouts"], yml, allow_unicode=True)
+            with open(save_path + f'dropouts_{_g}.yaml', 'w') as yml:
+                yaml.dump(self.groups[_g]["dropouts"], yml, allow_unicode=True)
 
     @staticmethod
     def _train_children(_data_household: pd.DataFrame,
                         _max_household_children: int,
                         _household_type: str,
-                        _household_location: int,
                         _model_location: str):
         """ Trains RF to predict basic attributes of children for a given household type.
 
@@ -402,7 +403,7 @@ class Syntets:
                 _set = _data_household[_target_map[_target_code]].unique()
 
                 if len(_set) == 1:
-                    print(f"Degeneracy at {_household_type} | region {_household_location} | total children {_max_household_children} | child id {aux_id} in {_target_code}")
+                    print(f"Degeneracy at {_household_type} | total children {_max_household_children} | child id {aux_id} in {_target_code}")
                     # degeneracy
                     _model = DummyClassifier(strategy="constant", constant=_set[0])
                     _optimal_predictors = _full_base_predictors
@@ -436,7 +437,7 @@ class Syntets:
                     _extra_children_predictors.append(_target_map[_target_code])
                     # only include if the target is not degenerate
 
-                _common_path = _model_location + f'{_household_type}_l{_household_location}_tc{_max_household_children}_cid{aux_id}_{_target_code}.'
+                _common_path = _model_location + f'{_household_type}_tc{_max_household_children}_cid{aux_id}_{_target_code}.'
                 joblib.dump(_model, _common_path + 'joblib')
 
                 with open(_common_path + 'yaml', 'w') as yml:
@@ -451,14 +452,14 @@ class Syntets:
 
     def train_children(self, _df_children: pd.DataFrame, save_path: str = "/tmp/", verbose = False):
         # TODO code consolidation
-        for _g, _r in self.subsets:
+        for _g in self.subsets:
             if _g in ["a1+", "c1", "c2", "c3+"]: # TODO mf
                 if verbose:
-                    print(f"{_g=}, {_r=}")
+                    print(f"{_g=}")
                 if _g.endswith("+"):
-                    _counts = self.groups[(_g, _r)]["data"]["total_children"].unique()
+                    _counts = self.groups[_g]["data"]["total_children"].unique()
                     for _total_children in _counts:
-                        _df = self.groups[(_g, _r)]["data"].copy()
+                        _df = self.groups[_g]["data"].copy()
                         _df = _df[_df["total_children"].eq(_total_children)].drop(columns="total_children")
 
                         _columns_id = [_c for _c in _df if _c.startswith("id_")]
@@ -482,9 +483,9 @@ class Syntets:
 
                         # comb = _df.apply(pd.unique)
                         # comb = _df.T.apply(lambda x: x.unique(), axis=1)  # HR 88/89 Avoids horrible Pandas error
-                        if len(_df.drop_duplicates()) <= 1:
-                            print(f"Extreme degeneracy detected in {_g}/{_r} with {_total_children} children, can't deal with 0 or 1 unique household in a group; dropping them out")
-                            self.groups[(_g, _r)]["data"] = self.groups[(_g, _r)]["data"][self.groups[(_g, _r)]["data"]["total_children"].ne(_total_children)]
+                        if len(_df.drop_duplicates()) == 1:
+                            print(f"Extreme degeneracy detected in {_g} with {_total_children} children, can't deal with 1 unique household in a group; dropping them out")
+                            self.groups[_g]["data"] = self.groups[_g]["data"][self.groups[_g]["data"]["total_children"].ne(_total_children)]
                             continue
 
                         comb = _df.apply(pd.unique)
@@ -498,19 +499,18 @@ class Syntets:
                         _models = self._train_children(_data_household = _df,
                                                        _max_household_children = _total_children,
                                                        _household_type = _g,
-                                                       _household_location = _r,
                                                        _model_location = save_path)
 
-                        if "children" in self.groups[(_g, _r)].keys():
-                            self.groups[(_g, _r)]["children"]["total"][_total_children] = _models["children"]["total"][_total_children]
+                        if "children" in self.groups[_g].keys():
+                            self.groups[_g]["children"]["total"][_total_children] = _models["children"]["total"][_total_children]
                         else:
-                            self.groups[(_g, _r)]["children"] = _models["children"]
+                            self.groups[_g]["children"] = _models["children"]
 
                 else:
                     # all households have the same number of children
-                    assert "total_children" not in self.groups[(_g, _r)]["data"].columns
+                    assert "total_children" not in self.groups[_g]["data"].columns
 
-                    _df = self.groups[(_g, _r)]["data"].copy()
+                    _df = self.groups[_g]["data"].copy()
 
                     _columns_id = [_c for _c in _df if _c.startswith("id_")]
                     _columns_id.remove("id_household")
@@ -536,9 +536,9 @@ class Syntets:
 
                         # comb = _df.apply(pd.unique)
                         # comb = _df.T.apply(lambda x: x.unique(), axis=1)  # HR 88/89 Avoids horrible Pandas error
-                        if len(_df.drop_duplicates()) <= 1:
-                            print(f"Extreme degeneracy detected in {_g}/{_r} with {_total_children} children, can't deal with 0 or 1 unique household in a group; dropping them out")
-                            self.groups[(_g, _r)]["data"] = self.groups[(_g, _r)]["data"][self.groups[(_g, _r)]["data"]["total_children"].ne(_total_children)]
+                        if len(_df.drop_duplicates()) == 1:
+                            print(f"Extreme degeneracy detected in {_g} with {_total_children} children, can't deal with 1 unique household in a group; dropping them out")
+                            self.groups[_g]["data"] = self.groups[_g]["data"][self.groups[_g]["data"]["total_children"].ne(_total_children)]
                             continue
 
                         comb = _df.apply(pd.unique)
@@ -550,10 +550,9 @@ class Syntets:
                         _models = self._train_children(_data_household = _df,
                                                        _max_household_children = _total_children,
                                                        _household_type = _g,
-                                                       _household_location = _r,
                                                        _model_location = save_path)
 
-                        self.groups[(_g, _r)]["children"] = _models["children"]
+                        self.groups[_g]["children"] = _models["children"]
 
     @staticmethod
     def pad_children(_df: pd.DataFrame) -> pd.DataFrame:
@@ -592,7 +591,6 @@ class Syntets:
                      _df: pd.DataFrame,
                      _max_household_children: int,
                      _household_type: str,
-                     _household_location: int,
                      _model_location: str,
                      _mini_batch_id_: int = None,
                      _micro_batch_id_: int = None,
@@ -631,7 +629,7 @@ class Syntets:
 
             # loop over target map k, v
             for _target_code, _v in _target_map.items():
-                _common_path = _model_location + f'{_household_type}_l{_household_location}_tc{_max_household_children}_cid{aux_id}_{_target_code}.'
+                _common_path = _model_location + f'{_household_type}_tc{_max_household_children}_cid{aux_id}_{_target_code}.'
                 # load yaml with optimal predictors
                 with open(_common_path + 'yaml', 'r') as stream:
                     _optimal_predictors = yaml.safe_load(stream)
@@ -668,7 +666,6 @@ class Syntets:
     def generator(self,
                   _local_model: CTGANSynthesizer,
                   _household_type: str,
-                  _household_location: int,
                   _local_dropouts: dict,
                   _mini_batch_id: int,
                   _micro_batch_id: int,
@@ -680,11 +677,10 @@ class Syntets:
         synthetic_data["id_household"] = generate_household_id(_sample_size = len(synthetic_data),
                                                                _mini_batch_id = _mini_batch_id,
                                                                _micro_batch_id = _micro_batch_id,
-                                                               _region_id = _household_location,
+                                                               _region_id = synthetic_data["category_household_location"],
                                                                _household_type = HOUSEHOLD_ID_MAP[_household_type])
 
         # reinstate dropouts
-        synthetic_data["category_household_location"] = _household_location
         for column_name, column_value in _local_dropouts:
             synthetic_data[column_name] = column_value
             # we re-introduce degenerate columns here to make sure all tables have the same structure
@@ -704,7 +700,6 @@ class Syntets:
                         self.add_children(_df=synthetic_data[synthetic_data["total_children"] == _children],
                                           _max_household_children = _children,
                                           _household_type = _household_type,
-                                          _household_location = _household_location,
                                           _model_location = "/tmp", # FIXME no hardcoded values
                                           _mini_batch_id_ = _mini_batch_id,
                                           _micro_batch_id_ = _micro_batch_id)
@@ -722,7 +717,6 @@ class Syntets:
                     synthetic_data = self.add_children(_df=synthetic_data,
                                                        _max_household_children = int(''.join(filter(str.isdigit, _household_type))),
                                                        _household_type = _household_type,
-                                                       _household_location = _household_location,
                                                        _model_location = "/tmp", # FIXME no hardcoded values
                                                        _mini_batch_id_ = _mini_batch_id,
                                                        _micro_batch_id_ = _micro_batch_id)
@@ -735,7 +729,6 @@ class Syntets:
                             self.add_children(_df=synthetic_data[synthetic_data["total_children"] == _children],
                                               _max_household_children = _children,
                                               _household_type = _household_type,
-                                              _household_location = _household_location,
                                               _model_location = "/tmp", # FIXME no hardcoded values
                                               _mini_batch_id_ = _mini_batch_id,
                                               _micro_batch_id_ = _micro_batch_id)
