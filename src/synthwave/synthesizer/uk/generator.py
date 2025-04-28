@@ -71,7 +71,7 @@ class Syntets:
                 if _c.split("_")[0] in ["category", "hours", "ordinal", "income", "ordinal", "total", "minutes"] and _c != "category_household_type":
                     _int_target.append(_c)
 
-            self.groups[_g]["data"][_int_target] = self.groups[_g]["data"][_int_target].astype(int)
+            self.groups[_g]["data"][_int_target] = self.groups[_g]["data"][_int_target].infer_objects(copy=False).fillna(0).astype(int)
 
             _bools = [_c for _c in _columns if _c.startswith(("indicator_", "mlb_"))]
             self.groups[_g]["data"][_bools] = self.groups[_g]["data"][_bools].astype(bool)
