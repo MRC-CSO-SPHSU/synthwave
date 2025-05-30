@@ -47,17 +47,20 @@ def main(data_path, save_path=None):
     generator.convert_types()
     generator.init_models(_epochs=1)
     generator.attach_constraints()
-
-    print("Running main training...")
-    generator.train(save_path=save_path)
-    print("Done!")
+    return generator
 
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("p", type=str, help="Data source path")
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument("p", type=str, help="Data source path")
+    #
+    # args = parser.parse_args()
+    # data_path = args.p
 
-    args = parser.parse_args()
-    data_path = args.p
-    main(data_path)
+    # Run main training - popping this out for testing
+    data_path = '/home/hpr/data/'
+    g = main(data_path)
+    print("Running main training...")
+    g.train(save_path=data_path)
+    print("Done!")
