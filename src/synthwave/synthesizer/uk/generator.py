@@ -134,8 +134,8 @@ class Syntets:
             if not _g.startswith("a"):
                 if _g.startswith("c"):
                     self.groups[_g]["data"].sort_values(by=["id_household",
-                                                                  'ordinal_person_age', # now first person is always younger, but sex can vary
-                                                                  'indicator_person_sex'], inplace=True)
+                                                            'ordinal_person_age', # now first person is always older, but sex can vary
+                                                            'indicator_person_sex'], inplace=True, ascending=False)
                 elif _g.startswith("m"):
                     if "c" in _g:
                         self.groups[_g]["data"]["is_in_couple"] = self.groups[_g]["data"]["id_partner"].notna()
@@ -254,20 +254,20 @@ class Syntets:
             if _g.startswith(("c", "m")): # this constraint always works because we sort the data in advance
                 if ("ordinal_person_age_a0" in self.groups[_g]["data"].columns) and ("ordinal_person_age_a1" in self.groups[_g]["data"].columns):
                     self.groups[_g]["model"].add_constraints(constraints=[
-                        get_inequality(["ordinal_person_age_a0",
-                                        "ordinal_person_age_a1"]),
+                        get_inequality(["ordinal_person_age_a1",
+                                        "ordinal_person_age_a0"]),
                     ])
             if _g in ["m3", "m4"]:
                 if ("ordinal_person_age_a1" in self.groups[_g]["data"].columns) and ("ordinal_person_age_a2" in self.groups[_g]["data"].columns):
                     self.groups[_g]["model"].add_constraints(constraints=[
-                        get_inequality(["ordinal_person_age_a1",
-                                        "ordinal_person_age_a2"]),
+                        get_inequality(["ordinal_person_age_a2",
+                                        "ordinal_person_age_a1"]),
                     ])
             if _g == "m4":
                 if ("ordinal_person_age_a2" in self.groups[_g]["data"].columns) and ("ordinal_person_age_a3" in self.groups[_g]["data"].columns):
                     self.groups[_g]["model"].add_constraints(constraints=[
-                        get_inequality(["ordinal_person_age_a2",
-                                        "ordinal_person_age_a3"]),
+                        get_inequality(["ordinal_person_age_a3",
+                                        "ordinal_person_age_a2"]),
                     ])
 
             if _g.startswith("c") or _g in ["mc3", "mc4"]:
