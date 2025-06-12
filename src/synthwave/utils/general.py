@@ -147,7 +147,7 @@ def generate_household_id(_sample_size: int = 10_000_000,
     assert 1 <= _sample_size <= 10_000_000_000
     assert 0 <= _micro_batch_id <= 99
     assert 0 <= _mini_batch_id <= 9
-    assert 1 <= _region_id <= 99
+    assert _region_id.ge(1).all() and _region_id.le(99).all()
     assert 0 <= _household_type <= 99
 
     def _build_id_base():
