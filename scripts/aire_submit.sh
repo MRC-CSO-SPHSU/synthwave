@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# Set current time for directory naming
+TIME=`date +%Y_%m_%d_%H_%M_%S`
+
+# Create these if they don't exist
+mkdir -p logs
+mkdir -p logs/logs
+mkdir -p logs/errors
+
+
+sbatch scripts/aire_run.sh -d "$2" -f "$4" -e "$6" -t $TIME
+#bash scripts/aire_run.sh -d "$2" -f "$4" -e "$6" -t $TIME  # Testing
+
+# If no errors...
+exit 0
