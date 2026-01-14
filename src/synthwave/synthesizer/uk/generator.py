@@ -1,3 +1,5 @@
+import os.path
+
 from sklearn.dummy import DummyClassifier
 import logging
 
@@ -430,7 +432,8 @@ class Syntets:
                     _extra_children_predictors.append(_target_map[_target_code])
                     # only include if the target is not degenerate
 
-                _common_path = _model_location + f'{_household_type}_tc{_max_household_children}_cid{aux_id}_{_target_code}.'
+                # XXXX _common_path = _model_location + f'{_household_type}_tc{_max_household_children}_cid{aux_id}_{_target_code}.'
+                _common_path = os.path.join( _model_location, f'{_household_type}_tc{_max_household_children}_cid{aux_id}_{_target_code}.')
                 joblib.dump(_model, _common_path + 'joblib')
 
                 with open(_common_path + 'yaml', 'w') as yml:
@@ -618,7 +621,8 @@ class Syntets:
 
             # loop over target map k, v
             for _target_code, _v in _target_map.items():
-                _common_path = _model_location + f'{_household_type}_tc{_max_household_children}_cid{aux_id}_{_target_code}.'
+                # XXXX_common_path = _model_location + f'{_household_type}_tc{_max_household_children}_cid{aux_id}_{_target_code}.'
+                _common_path = os.path.join( _model_location, f'{_household_type}_tc{_max_household_children}_cid{aux_id}_{_target_code}.' )
                 # load yaml with optimal predictors
                 with open(_common_path + 'yaml', 'r') as stream:
                     _optimal_predictors = yaml.safe_load(stream)
@@ -659,7 +663,8 @@ class Syntets:
                   _mini_batch_id: int,
                   _micro_batch_id: int,
                   _total_rows: int = 10_000_000,
-                  _batch_size: int = 1_000_000):
+                  _batch_size: int = 1_000_000,
+                  _model_location: str = "/tmp"):
 
         synthetic_data = _local_model.sample(num_rows=_total_rows, batch_size=_batch_size)
         # assign household ids
@@ -670,7 +675,7 @@ class Syntets:
                                                                _household_type = HOUSEHOLD_ID_MAP[_household_type])
 
         # reinstate dropouts
-        for column_name, column_value in _local_dropouts:
+        for column_name, column_value in _local_dropouts.items():
             synthetic_data[column_name] = column_value
             # we re-introduce degenerate columns here to make sure all tables have the same structure
 
